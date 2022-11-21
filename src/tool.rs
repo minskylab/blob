@@ -20,5 +20,11 @@ pub struct BlobTool {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Add a new blob
-    Add { name: Option<String> },
+    Apply {
+        #[arg(short, long)]
+        path: Option<String>,
+
+        #[arg(short, long)]
+        instruction: Option<String>,
+    },
 }
