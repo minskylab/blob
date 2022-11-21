@@ -20,7 +20,7 @@ impl Processor {
         self: Self,
         input: impl Into<String>,
         instruction: impl Into<String>,
-    ) -> Result<(), Error> {
+    ) -> Result<String, Error> {
         let endpoint = String::from(CODEX_EDIT_API);
 
         let mut headers = HeaderMap::new();
@@ -51,8 +51,8 @@ impl Processor {
 
         let data = response.json::<Value>().await?;
 
-        println!("{:?}", data["choices"][0]["text"]);
+        // println!("{:?}", data["choices"][0]["text"]);
 
-        return Ok(());
+        return Ok(data["choices"][0]["text"].as_str().unwrap().to_string());
     }
 }
