@@ -3,6 +3,8 @@ use serde_json::{json, Value};
 
 static CODEX_EDIT_API: &str = "https://api.openai.com/v1/engines/code-davinci-edit-001/edits";
 
+#[derive(Debug, Clone)]
+
 pub struct Processor {
     http_client: Client,
     access_token: String,
@@ -53,6 +55,6 @@ impl Processor {
 
         // println!("{:?}", data["choices"][0]["text"]);
 
-        return Ok(data["choices"][0]["text"].as_str().unwrap().to_string());
+        Ok(data["choices"][0]["text"].as_str().unwrap().to_string())
     }
 }

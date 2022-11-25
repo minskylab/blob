@@ -4,6 +4,7 @@ use clap::Parser;
 use codex::Processor;
 use tool::{BlobTool, Commands};
 
+use glob::glob;
 use std::path::Path;
 
 mod codex;
@@ -16,36 +17,43 @@ async fn main() {
 
     let access_token = std::env::var("OPENAI_API_KEY").unwrap();
 
-    let p = Processor::new(access_token);
-
     match &cli.command {
         Commands::Apply { path, instruction } => {
             println!("Applying edits to {:?}", path);
+
             let path_str = path.as_ref().unwrap();
 
-            let content = std::fs::read_to_string(path_str).unwrap();
+            let p = Processor::new(access_token);
 
-            let resp = p.codex_call(content, instruction.as_ref().unwrap()).await;
+            for entry in glob(path_str).expect("Failed to read glob pattern") {
+                match entry {
+                    Ok(path) => {
+                        // println!("{:?}", );
+                        let path_str = Box::new(path.to_str().unwrap());
 
-            match resp {
-                Ok(edit) => {
-                    println!("\n{edit}");
+                        let content = std::fs::read_to_string(*path_str).unwrap();
+                        let edit = p
+                            .clone()
+                            .codex_call(content, instruction.as_ref().unwrap())
+                            .await
+                            .unwrap();
 
-                    let new_path = format!("_blobs/{}", path_str);
-                    let path = Path::new(new_path.as_str());
-                    let prefix = path.parent().unwrap();
+                        println!("\n{edit}");
 
-                    println!("Writing to {:?}", new_path);
+                        let new_path = format!("_blobs/{}", *path_str);
+                        let path = Path::new(new_path.as_str());
+                        let prefix = path.parent().unwrap();
 
-                    std::fs::create_dir_all(prefix).unwrap();
+                        println!("Writing to {:?}", new_path);
 
-                    let file = std::fs::File::create(path).unwrap();
-                    let mut writer = std::io::BufWriter::new(file);
+                        std::fs::create_dir_all(prefix).unwrap();
 
-                    writer.write_all(edit.as_bytes()).unwrap();
-                }
-                Err(e) => {
-                    println!("Error: {:?}", e);
+                        let file = std::fs::File::create(path).unwrap();
+                        let mut writer = std::io::BufWriter::new(file);
+
+                        writer.write_all(edit.as_bytes()).unwrap();
+                    }
+                    Err(e) => println!("{:?}", e),
                 }
             }
         }
