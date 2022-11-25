@@ -4,6 +4,8 @@ use clap::Parser;
 use codex::Processor;
 use tool::{BlobTool, Commands};
 
+use std::path::Path;
+
 mod codex;
 mod tool;
 
@@ -30,7 +32,7 @@ async fn main() {
                     println!("\n{edit}");
 
                     let new_path = format!("_blobs/{}", path_str);
-                    let path = std::path::Path::new(new_path.as_str());
+                    let path = Path::new(new_path.as_str());
                     let prefix = path.parent().unwrap();
 
                     println!("Writing to {:?}", new_path);

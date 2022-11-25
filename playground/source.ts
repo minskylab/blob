@@ -1,3 +1,3 @@
 function foo(a, b) {
-  return a + b;
+  return `total sum: ${a + b}`;
 }

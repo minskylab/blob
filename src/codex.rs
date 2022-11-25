@@ -33,12 +33,12 @@ impl Processor {
         headers.insert("Content-Type", "application/json".parse().unwrap());
 
         let body = json! {
-            {
-                "input": input.into(),
-                "instruction": instruction.into(),
-                "temperature": 0,
-                "top_p": 1,
-            }
+           {
+            "input": input.into(),
+            "instruction": instruction.into(),
+            "temperature": 0,
+            "top_p": 1,
+           }
         };
 
         let response = self
