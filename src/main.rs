@@ -28,7 +28,7 @@ async fn main() {
             for entry in glob(path_str).expect("Failed to read glob pattern") {
                 match entry {
                     Ok(path) => {
-                        // println!("{:?}", );
+                        // println!("{:?}", path.display());
                         let path_str = Box::new(path.to_str().unwrap());
 
                         let content = std::fs::read_to_string(*path_str).unwrap();
@@ -38,7 +38,7 @@ async fn main() {
                             .await
                             .unwrap();
 
-                        println!("\n{edit}");
+                        // println!("\n{edit}");
 
                         let new_path = format!("_blobs/{}", *path_str);
                         let path = Path::new(new_path.as_str());
