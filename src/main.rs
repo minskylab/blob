@@ -7,7 +7,9 @@ use tool::{BlobTool, Commands};
 use glob::glob;
 use std::path::Path;
 
+mod blob;
 mod codex;
+mod codex_responses;
 mod tool;
 
 #[tokio::main]
@@ -34,7 +36,7 @@ async fn main() {
                         let content = std::fs::read_to_string(*path_str).unwrap();
                         let edit = p
                             .clone()
-                            .codex_call(content, instruction.as_ref().unwrap())
+                            .codex_edit_call(content, instruction.as_ref().unwrap())
                             .await
                             .unwrap();
 
@@ -51,7 +53,9 @@ async fn main() {
                         let file = std::fs::File::create(path).unwrap();
                         let mut writer = std::io::BufWriter::new(file);
 
-                        writer.write_all(edit.as_bytes()).unwrap();
+                        writer
+                            .write_all(edit.choices.first().unwrap().text.as_bytes())
+                            .unwrap();
                     }
                     Err(e) => println!("{:?}", e),
                 }

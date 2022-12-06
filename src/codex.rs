@@ -1,6 +1,8 @@
 use reqwest::{header::HeaderMap, Client, Error};
 use serde_json::{json, Value};
 
+use crate::codex_responses::EditResponse;
+
 static CODEX_EDIT_API: &str = "https://api.openai.com/v1/engines/code-davinci-edit-001/edits";
 
 #[derive(Debug, Clone)]
@@ -18,11 +20,11 @@ impl Processor {
         }
     }
 
-    pub async fn codex_call(
+    pub async fn codex_edit_call(
         self: Self,
         input: impl Into<String>,
         instruction: impl Into<String>,
-    ) -> Result<String, Error> {
+    ) -> Result<EditResponse, Error> {
         let endpoint = String::from(CODEX_EDIT_API);
 
         let mut headers = HeaderMap::new();
@@ -51,10 +53,11 @@ impl Processor {
             .send()
             .await?;
 
-        let data = response.json::<Value>().await?;
+        let data = response.json::<EditResponse>().await?;
 
-        // println!("{:?}", data["choices"][0]["text"]);
+        // println!("{:?}", data);
+        Ok(data)
 
-        Ok(data["choices"][0]["text"].as_str().unwrap().to_string())
+        // Ok(data["choices"][0]["text"].as_str().unwrap().to_string())
     }
 }
