@@ -17,7 +17,7 @@ blob do "bootstrap a new nextjs project"
 ```
 
 ```bash
-blob do "add some basic component for a design system"
+blob do "add some basic components for a design system"
 ```
 
 ```bash
