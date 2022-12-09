@@ -25,4 +25,12 @@ pub enum Commands {
         #[arg(short, long)]
         instruction: Option<String>,
     },
+
+    Plan {
+        #[arg(short, long)]
+        path: Option<String>,
+
+        #[arg(short, long)]
+        instruction: Option<String>,
+    },
 }

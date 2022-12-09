@@ -1,5 +1,5 @@
 use reqwest::{header::HeaderMap, Client, Error};
-use serde_json::{json, Value};
+use serde_json::json;
 
 use crate::codex_responses::EditResponse;
 
@@ -36,20 +36,18 @@ impl Processor {
 
         headers.insert("Content-Type", "application/json".parse().unwrap());
 
-        let body = json! {
-           {
-            "input": input.into(),
-            "instruction": instruction.into(),
-            "temperature": 0,
-            "top_p": 1,
-           }
-        };
-
         let response = self
             .http_client
             .post(&endpoint)
             .headers(headers)
-            .json(&body)
+            .json(&json! {
+               {
+                "input": input.into(),
+                "instruction": instruction.into(),
+                "temperature": 0,
+                "top_p": 1,
+               }
+            })
             .send()
             .await?;
 

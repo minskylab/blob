@@ -13,3 +13,5 @@ serde_json = "1.0.88"
 tokio = { version = "1", features = ["full"] }
 serde_derive = "1.0.149"
 serde = "1.0.149"
+git2 = "0.15.0"
+globset = "0.4.9"

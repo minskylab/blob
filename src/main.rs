@@ -2,15 +2,22 @@ use std::io::Write;
 
 use clap::Parser;
 use codex::Processor;
+use filters::{FilterAggregate, GitignoreFilter};
 use tool::{BlobTool, Commands};
 
 use glob::glob;
 use std::path::Path;
 
+use print::PrintProcessorBuilder;
+use tree::TreeProcessor;
+
 mod blob;
 mod codex;
 mod codex_responses;
+mod filters;
+mod print;
 mod tool;
+mod tree;
 
 #[tokio::main]
 
@@ -60,6 +67,23 @@ async fn main() {
                     Err(e) => println!("{:?}", e),
                 }
             }
+        }
+
+        Commands::Plan { path, instruction } => {
+            let mut filters = FilterAggregate::default();
+
+            let dir = Path::new(path.as_ref().unwrap());
+            let processor = PrintProcessorBuilder::new(From::from(dir));
+
+            let github_filter = GitignoreFilter::new(dir).unwrap().unwrap();
+
+            filters.push(github_filter);
+
+            let mut tree_iter = tree::TreeIter::new(dir, filters).unwrap();
+
+            println!("Planning edits to {:?}", path);
+
+            processor.build().process(&mut tree_iter).unwrap();
         }
     }
 }
