@@ -2,6 +2,18 @@
 
 Blob is a OpenAI GPT-3 powered tool to bootstrap software projects, it's very experimental and I'm not sure if it will work.
 
+## Main Idea
+
+The principal idea of blob is create a **natural language reversible representation** of the file structure of the project, in this way, we can request to GPT-3 to generate a new file structure based on a natural language instructions. I try some representation, but actually the most simple and effective is a tree-like representation of the file structure, example below.
+
+```
+playground/
+├── source.ts
+└── example.tsx
+```
+
+## Usage
+
 The way to use is invoking the `blob` command with the name of the project you want to create, for example:
 
 ```bash
@@ -26,4 +38,4 @@ blob do "add a new page to the project and put a big hello world in the center o
 
 ### Acknowledgements
 
-Actually I use some code from [https://github.com/jacwah/oak](Oak) project. In the future I document it better.
+Actually I use some code from [https://github.com/jacwah/oak](Oak) project to parse the file structure into tree-like. In the future I document this part better.
