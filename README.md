@@ -4,12 +4,91 @@ Blob is a OpenAI GPT-3 powered tool to bootstrap software projects, it's very ex
 
 ## Main Idea
 
-The principal idea of blob is create a **natural language reversible representation** of the file structure of the project, in this way, we can request to GPT-3 to generate a new file structure based on a natural language instructions. I try some representation, but actually the most simple and effective is a tree-like representation of the file structure, example below.
+The principal idea of blob is create a **natural language reversible representation of the file structure** of the project, in this way, we can request to GPT-3 to generate a new file structure based on a natural language instructions. I try some representation, but actually the most simple and effective is a tree-like representation of the file structure.
+
+For example, imagine that you have a project in a folder called `playground` with the following structure:
 
 ```
 playground/
 ├── source.ts
 └── example.tsx
+```
+
+And you want to add a new file called `hello.tsx` in the same folder, you can do it with the following command:
+
+```bash
+blob do "add a new file called hello.tsx"
+```
+
+The result will be:
+
+```
+playground/
+├── source.ts
+├── example.tsx
+└── hello.tsx
+```
+
+Or, if you want bootstrap a new entire project with nextjs and typescript, you can do it with the following command:
+
+```bash
+blob do "bootstrap a new nextjs project"
+```
+
+The result will be:
+
+```
+nextjs-starter/
+├── .gitignore
+├── README.md
+├── package.json
+├── pages
+│   ├── _app.tsx
+│   ├── _document.tsx
+│   ├── index.tsx
+│   └── about.tsx
+├── public
+│   ├── favicon.ico
+│   ├── logo.png
+│   └── robots.txt
+├── src
+│   ├── components
+│   │   ├── header.tsx
+│   │   └── layout.tsx
+│   └── styles
+│       └── global.css
+└── tsconfig.json
+```
+
+And if you want to put your `pages` folder into your `src` folder, you can do it with the following command:
+
+```bash
+blob do "move the pages folder into the src folder"
+```
+
+Resulting in:
+
+```
+nextjs-starter/
+├── .gitignore
+├── README.md
+├── package.json
+├── public
+│   ├── favicon.ico
+│   ├── logo.png
+│   └── robots.txt
+├── src
+│   ├── pages
+│   │   ├── _app.tsx
+│   │   ├── _document.tsx
+│   │   ├── index.tsx
+│   │   └── about.tsx
+│   ├── components
+│   │   ├── header.tsx
+│   │   └── layout.tsx
+│   └── styles
+│       └── global.css
+└── tsconfig.json
 ```
 
 ## Usage
