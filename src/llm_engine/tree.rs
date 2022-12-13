@@ -1,12 +1,13 @@
 //! Types for recursively walking the file system tree.
 
-use super::filters::FileFilter;
 use std::error::Error;
 use std::fmt;
 use std::fs;
 use std::iter::Peekable;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+
+use super::filters::FileFilter;
 
 /// Events yielded from `TreeIter`.
 #[derive(Debug)]

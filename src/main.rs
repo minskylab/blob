@@ -2,23 +2,19 @@ use std::io::Write;
 
 use clap::Parser;
 use codex::Processor;
-use filters::{FilterAggregate, GitignoreFilter};
-use tool::{BlobTool, Commands};
-
 use glob::glob;
+use llm_engine::filters::{FilterAggregate, GitignoreFilter};
+use llm_engine::tree::TreeIter;
+use llm_engine::tree::TreeProcessor;
+use llm_engine::tree_processor::TreeRepresentation;
 use std::path::Path;
-
-use print::TreeProcessorBuilder;
-use tree::TreeProcessor;
+use tool::{BlobTool, Commands};
 
 mod blob;
 mod codex;
 mod codex_responses;
-mod filters;
 mod llm_engine;
-mod print;
 mod tool;
-mod tree;
 
 #[tokio::main]
 
@@ -74,17 +70,18 @@ async fn main() {
             let mut filters = FilterAggregate::default();
 
             let dir = Path::new(path.as_ref().unwrap());
-            let processor = TreeProcessorBuilder::new(From::from(dir));
+            // let processor = TreeProcessorBuilder::new(From::from(dir));
+            let mut processor = TreeRepresentation::new();
 
             let github_filter = GitignoreFilter::new(dir).unwrap().unwrap();
 
             filters.push(github_filter);
 
-            let mut tree_iter = tree::TreeIter::new(dir, filters).unwrap();
+            let mut tree_iter = TreeIter::new(dir, filters).unwrap();
 
             println!("Planning edits to {:?}", path);
 
-            let tree = processor.build().construct(&mut tree_iter).unwrap();
+            let tree = processor.construct(&mut tree_iter).unwrap();
 
             println!("{tree}");
         }
