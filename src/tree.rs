@@ -248,31 +248,31 @@ impl Iterator for TreeIter {
 /// A generic trait for processing the output of `TreeIter`.
 pub trait TreeProcessor {
     /// Called for each `OpenDir` event.
-    fn open_dir(&mut self, entry: &Entry);
+    // fn open_dir(&mut self, entry: &Entry);
     /// Called for each `CloseDir` event.
     fn close_dir(&mut self);
     /// Called for each `File` event.
-    fn file(&mut self, entry: &Entry);
+    // fn file(&mut self, entry: &Entry);
 
     fn construct_dir(&mut self, entry: &Entry) -> String;
     fn construct_file(&mut self, entry: &Entry) -> String;
     /// Iterates thorugh a `TreeIter`, delegating each event to its respective method.
-    fn process(&mut self, tree: &mut TreeIter) -> Option<Box<dyn Error>> {
-        for result in tree {
-            match result {
-                Ok(event) => {
-                    match event {
-                        Event::OpenDir(ref entry) => self.open_dir(entry),
-                        Event::File(ref entry) => self.file(entry),
-                        Event::CloseDir => self.close_dir(),
-                    };
-                }
-                Err(err) => return Some(err),
-            };
-        }
+    // fn process(&mut self, tree: &mut TreeIter) -> Option<Box<dyn Error>> {
+    //     for result in tree {
+    //         match result {
+    //             Ok(event) => {
+    //                 match event {
+    //                     Event::OpenDir(ref entry) => self.open_dir(entry),
+    //                     Event::File(ref entry) => self.file(entry),
+    //                     Event::CloseDir => self.close_dir(),
+    //                 };
+    //             }
+    //             Err(err) => return Some(err),
+    //         };
+    //     }
 
-        None
-    }
+    //     None
+    // }
 
     fn construct(&mut self, tree: &mut TreeIter) -> Result<String, Box<dyn Error>> {
         let mut result = String::new();
@@ -282,7 +282,7 @@ pub trait TreeProcessor {
                     match event {
                         Event::OpenDir(ref entry) => result.push_str(&self.construct_dir(entry)),
                         Event::File(ref entry) => result.push_str(&self.construct_file(entry)),
-                        Event::CloseDir => {}
+                        Event::CloseDir => self.close_dir(),
                     };
                 }
                 Err(err) => return Err(err),

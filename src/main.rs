@@ -8,13 +8,14 @@ use tool::{BlobTool, Commands};
 use glob::glob;
 use std::path::Path;
 
-use print::PrintProcessorBuilder;
+use print::TreeProcessorBuilder;
 use tree::TreeProcessor;
 
 mod blob;
 mod codex;
 mod codex_responses;
 mod filters;
+mod llm_engine;
 mod print;
 mod tool;
 mod tree;
@@ -27,7 +28,7 @@ async fn main() {
     let access_token = std::env::var("OPENAI_API_KEY").unwrap();
 
     match &cli.command {
-        Commands::Apply { path, instruction } => {
+        Commands::Create { path, instruction } => {
             println!("Applying edits to {:?}", path);
 
             let path_str = path.as_ref().unwrap();
@@ -70,14 +71,14 @@ async fn main() {
         }
 
         Commands::Do { path, instruction } => {
-            let filters = FilterAggregate::default();
+            let mut filters = FilterAggregate::default();
 
             let dir = Path::new(path.as_ref().unwrap());
-            let processor = PrintProcessorBuilder::new(From::from(dir));
+            let processor = TreeProcessorBuilder::new(From::from(dir));
 
-            // let github_filter = GitignoreFilter::new(dir).unwrap().unwrap();
+            let github_filter = GitignoreFilter::new(dir).unwrap().unwrap();
 
-            // filters.push(github_filter);
+            filters.push(github_filter);
 
             let mut tree_iter = tree::TreeIter::new(dir, filters).unwrap();
 
