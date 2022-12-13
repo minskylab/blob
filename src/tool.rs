@@ -26,7 +26,7 @@ pub enum Commands {
         instruction: Option<String>,
     },
 
-    Plan {
+    Do {
         #[arg(short, long)]
         path: Option<String>,
 

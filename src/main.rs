@@ -69,21 +69,23 @@ async fn main() {
             }
         }
 
-        Commands::Plan { path, instruction } => {
-            let mut filters = FilterAggregate::default();
+        Commands::Do { path, instruction } => {
+            let filters = FilterAggregate::default();
 
             let dir = Path::new(path.as_ref().unwrap());
             let processor = PrintProcessorBuilder::new(From::from(dir));
 
-            let github_filter = GitignoreFilter::new(dir).unwrap().unwrap();
+            // let github_filter = GitignoreFilter::new(dir).unwrap().unwrap();
 
-            filters.push(github_filter);
+            // filters.push(github_filter);
 
             let mut tree_iter = tree::TreeIter::new(dir, filters).unwrap();
 
             println!("Planning edits to {:?}", path);
 
-            processor.build().process(&mut tree_iter).unwrap();
+            let tree = processor.build().construct(&mut tree_iter).unwrap();
+
+            println!("{tree}");
         }
     }
 }

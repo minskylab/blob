@@ -254,6 +254,8 @@ pub trait TreeProcessor {
     /// Called for each `File` event.
     fn file(&mut self, entry: &Entry);
 
+    fn construct_dir(&mut self, entry: &Entry) -> String;
+    fn construct_file(&mut self, entry: &Entry) -> String;
     /// Iterates thorugh a `TreeIter`, delegating each event to its respective method.
     fn process(&mut self, tree: &mut TreeIter) -> Option<Box<dyn Error>> {
         for result in tree {
@@ -270,5 +272,23 @@ pub trait TreeProcessor {
         }
 
         None
+    }
+
+    fn construct(&mut self, tree: &mut TreeIter) -> Result<String, Box<dyn Error>> {
+        let mut result = String::new();
+        for event in tree {
+            match event {
+                Ok(event) => {
+                    match event {
+                        Event::OpenDir(ref entry) => result.push_str(&self.construct_dir(entry)),
+                        Event::File(ref entry) => result.push_str(&self.construct_file(entry)),
+                        Event::CloseDir => {}
+                    };
+                }
+                Err(err) => return Err(err),
+            };
+        }
+
+        Ok(result)
     }
 }
