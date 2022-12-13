@@ -38,11 +38,11 @@ impl Entry {
         self.has_next_sibling
     }
 
-    /// A cached metadata entry for this file. It's probably better to use this than
-    /// calling `fs::metadata` on `path`.
-    pub fn metadata(&self) -> &fs::Metadata {
-        &self.metadata
-    }
+    // /// A cached metadata entry for this file. It's probably better to use this than
+    // /// calling `fs::metadata` on `path`.
+    // pub fn metadata(&self) -> &fs::Metadata {
+    //     &self.metadata
+    // }
 }
 
 impl fmt::Debug for Entry {
@@ -109,37 +109,6 @@ impl Iterator for FilteredDir {
     }
 }
 
-/// A filtered recursive directory iterator.
-///
-/// The iterator descends the tree depth first. This means that all of a directory's children
-/// will immediately follow their parent. This essentially mirrors the output of this program.
-///
-/// # Example
-/// Given the following directory structure, where directories are denoted by a trailing slash,
-/// the items would be returned from `TreeIter` in the same order.
-///
-/// ```text
-/// .
-/// ├── a
-/// ├── b/
-/// │   ├── 1
-/// │   └── 2
-/// ├── c/
-/// └── d
-/// ```
-///
-/// This would be the yielded events, in order:
-///
-/// ```text
-/// File(a)
-/// OpenDir(b)
-/// File(1)
-/// File(2)
-/// CloseDir
-/// OpenDir(c)
-/// CloseDir
-/// File(d)
-/// ```
 pub struct TreeIter {
     dir_stack: Vec<Peekable<FilteredDir>>,
     file_filter: Rc<dyn FileFilter>,
@@ -248,32 +217,10 @@ impl Iterator for TreeIter {
 
 /// A generic trait for processing the output of `TreeIter`.
 pub trait TreeProcessor {
-    /// Called for each `OpenDir` event.
-    // fn open_dir(&mut self, entry: &Entry);
-    /// Called for each `CloseDir` event.
     fn close_dir(&mut self);
-    /// Called for each `File` event.
-    // fn file(&mut self, entry: &Entry);
 
     fn construct_dir(&mut self, entry: &Entry) -> String;
     fn construct_file(&mut self, entry: &Entry) -> String;
-    /// Iterates thorugh a `TreeIter`, delegating each event to its respective method.
-    // fn process(&mut self, tree: &mut TreeIter) -> Option<Box<dyn Error>> {
-    //     for result in tree {
-    //         match result {
-    //             Ok(event) => {
-    //                 match event {
-    //                     Event::OpenDir(ref entry) => self.open_dir(entry),
-    //                     Event::File(ref entry) => self.file(entry),
-    //                     Event::CloseDir => self.close_dir(),
-    //                 };
-    //             }
-    //             Err(err) => return Some(err),
-    //         };
-    //     }
-
-    //     None
-    // }
 
     fn construct(&mut self, tree: &mut TreeIter) -> Result<String, Box<dyn Error>> {
         let mut result = String::new();

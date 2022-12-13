@@ -1,10 +1,8 @@
 //! Various file filters and abstractions for working with them.
 
 extern crate git2;
-extern crate globset;
 
 use self::git2::Repository;
-use self::globset::{Glob, GlobSet, GlobSetBuilder};
 use std::error::Error;
 use std::path::Path;
 use std::result;
@@ -60,81 +58,81 @@ impl FileFilter for FilterAggregate {
     }
 }
 
-/// Builder for `GlobFilter`.
-pub struct GlobFilterBuilder {
-    patterns: Vec<String>,
-    invert: bool,
-}
+// Builder for `GlobFilter`.
+// pub struct GlobFilterBuilder {
+//     patterns: Vec<String>,
+//     invert: bool,
+// }
 
-impl GlobFilterBuilder {
-    /// Create a new builder.
-    ///
-    /// If `invert` is true, matches are inverted.
-    pub fn new(invert: bool) -> Self {
-        GlobFilterBuilder {
-            patterns: Vec::new(),
-            invert: invert,
-        }
-    }
+// impl GlobFilterBuilder {
+//     /// Create a new builder.
+//     ///
+//     /// If `invert` is true, matches are inverted.
+//     pub fn new(invert: bool) -> Self {
+//         GlobFilterBuilder {
+//             patterns: Vec::new(),
+//             invert: invert,
+//         }
+//     }
 
-    /// Add a pattern to the builder.
-    pub fn add(&mut self, pattern: String) -> &mut Self {
-        self.patterns.push(pattern);
-        self
-    }
+//     /// Add a pattern to the builder.
+//     pub fn add(&mut self, pattern: String) -> &mut Self {
+//         self.patterns.push(pattern);
+//         self
+//     }
 
-    /// Build a `GlobFilter` from the set options.
-    pub fn build(&self) -> result::Result<GlobFilter, Box<dyn Error>> {
-        let mut builder = GlobSetBuilder::new();
+//     /// Build a `GlobFilter` from the set options.
+//     pub fn build(&self) -> result::Result<GlobFilter, Box<dyn Error>> {
+//         let mut builder = GlobSetBuilder::new();
 
-        for pattern in &self.patterns {
-            builder.add(Glob::new(&pattern).unwrap());
-        }
+//         for pattern in &self.patterns {
+//             builder.add(Glob::new(&pattern).unwrap());
+//         }
 
-        builder
-            .build()
-            .map(|set| GlobFilter {
-                pattern: set,
-                invert: self.invert,
-            })
-            .map_err(From::from)
-    }
-}
+//         builder
+//             .build()
+//             .map(|set| GlobFilter {
+//                 pattern: set,
+//                 invert: self.invert,
+//             })
+//             .map_err(From::from)
+//     }
+// }
 
-/// Filter by glob pattern.
-pub struct GlobFilter {
-    pattern: GlobSet,
-    invert: bool,
-}
+// Filter by glob pattern.
+// pub struct GlobFilter {
+//     pattern: GlobSet,
+//     invert: bool,
+// }
 
-impl GlobFilter {
-    /// Create a new glob filter from an iterator of `String` patterns.
-    ///
-    /// If `invert` is true, matches are inverted.
-    pub fn from<I: Iterator<Item = String>>(
-        patterns: I,
-        invert: bool,
-    ) -> result::Result<GlobFilter, Box<dyn Error>> {
-        let mut builder = GlobFilterBuilder::new(invert);
+// impl GlobFilter {
+//     /// Create a new glob filter from an iterator of `String` patterns.
+//     ///
+//     /// If `invert` is true, matches are inverted.
+//     pub fn from<I: Iterator<Item = String>>(
+//         patterns: I,
+//         invert: bool,
+//     ) -> result::Result<GlobFilter, Box<dyn Error>> {
+//         let mut builder = GlobFilterBuilder::new(invert);
 
-        for pattern in patterns {
-            builder.add(pattern);
-        }
+//         for pattern in patterns {
+//             builder.add(pattern);
+//         }
 
-        builder.build()
-    }
-}
+//         builder.build()
+//     }
+// }
 
-impl FileFilter for GlobFilter {
-    fn filter(&self, path: &Path) -> Result {
-        let path = path.strip_prefix("./").unwrap_or(path);
-        let is_match = self.pattern.is_match(path);
+// impl FileFilter for GlobFilter {
+//     fn filter(&self, path: &Path) -> Result {
+//         let path = path.strip_prefix("./").unwrap_or(path);
+//         let is_match = self.pattern.is_match(path);
 
-        Ok(if self.invert { !is_match } else { is_match })
-    }
-}
+//         Ok(if self.invert { !is_match } else { is_match })
+//     }
+// }
 
-/// Exclude files ignored by git.
+// /// Exclude files ignored by git.
 pub struct GitignoreFilter {
     repo: Repository,
 }
@@ -168,18 +166,18 @@ impl FileFilter for GitignoreFilter {
     }
 }
 
-/// Exclude hidden files.
-///
-/// This function relies on the Unix convention of denoting hidden files with a leading dot (`.`).
-pub fn filter_hidden_files(path: &Path) -> Result {
-    path.file_name()
-        .and_then(|name| name.to_str().map(|str| !str.starts_with('.')))
-        .ok_or_else(|| From::from("No file name."))
-}
+// Exclude hidden files.
+//
+// This function relies on the Unix convention of denoting hidden files with a leading dot (`.`).
+// pub fn filter_hidden_files(path: &Path) -> Result {
+//     path.file_name()
+//         .and_then(|name| name.to_str().map(|str| !str.starts_with('.')))
+//         .ok_or_else(|| From::from("No file name."))
+// }
 
-/// Exclude non directory files.
-pub fn filter_non_dirs(path: &Path) -> Result {
-    path.metadata()
-        .map(|data| data.is_dir())
-        .map_err(From::from)
-}
+// /// Exclude non directory files.
+// pub fn filter_non_dirs(path: &Path) -> Result {
+//     path.metadata()
+//         .map(|data| data.is_dir())
+//         .map_err(From::from)
+// }

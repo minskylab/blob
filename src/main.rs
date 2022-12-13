@@ -6,7 +6,7 @@ use glob::glob;
 use llm_engine::filters::{FilterAggregate, GitignoreFilter};
 use llm_engine::tree::TreeIter;
 use llm_engine::tree::TreeProcessor;
-use llm_engine::tree_processor::TreeRepresentation;
+use llm_engine::tree_representation::TreeRepresentation;
 use std::path::Path;
 use tool::{BlobTool, Commands};
 
