@@ -1,18 +1,18 @@
 use reqwest::{header::HeaderMap, Client, Error};
 use serde_json::json;
 
-use crate::codex_responses::EditResponse;
+use super::codex_responses::EditResponse;
 
 static CODEX_EDIT_API: &str = "https://api.openai.com/v1/engines/code-davinci-edit-001/edits";
 
 #[derive(Debug, Clone)]
 
-pub struct Processor {
+pub struct CodexProcessor {
     http_client: Client,
     access_token: String,
 }
 
-impl Processor {
+impl CodexProcessor {
     pub fn new(access_token: String) -> Self {
         Self {
             access_token,
