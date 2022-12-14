@@ -78,10 +78,14 @@ async fn main() {
 
             let mut tree_iter = TreeIter::new(dir, filters).unwrap();
 
-            let proposed_structure = engine
-                .perform_edit(tree_iter.by_ref(), instruction.as_ref().unwrap().clone())
+            let (current_structure, proposed_structure) = engine
+                .generate_proposal(tree_iter.by_ref(), instruction.as_ref().unwrap().clone())
                 .await;
 
+            let current_dir = dir.to_str().unwrap().clone();
+
+            println!("{current_dir}");
+            println!("{current_structure}");
             println!("{proposed_structure}");
 
             // println!("Planning edits to {:?}", path);

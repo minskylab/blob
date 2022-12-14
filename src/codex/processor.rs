@@ -44,7 +44,7 @@ impl CodexProcessor {
                {
                 "input": input.into(),
                 "instruction": instruction.into(),
-                "temperature": 0,
+                "temperature": 0.2,
                 "top_p": 1,
                }
             })

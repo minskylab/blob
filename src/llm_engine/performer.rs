@@ -23,16 +23,20 @@ impl LLMEngine {
         self.llm_representation.construct(root).unwrap()
     }
 
-    pub async fn perform_edit(&mut self, root: &mut TreeIter, prompt: String) -> String {
+    pub async fn generate_proposal(
+        &mut self,
+        root: &mut TreeIter,
+        prompt: String,
+    ) -> (String, String) {
         let context = self.generate_context(root);
 
         let edit = self
             .codex_processor
             .clone()
-            .codex_edit_call(context, prompt)
+            .codex_edit_call(context.clone(), prompt)
             .await
             .unwrap();
 
-        edit.choices.first().unwrap().text.clone()
+        (context.clone(), edit.choices.first().unwrap().text.clone())
     }
 }
