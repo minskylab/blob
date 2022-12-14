@@ -1,19 +1,15 @@
-use std::io::Write;
-
 use clap::Parser;
-use codex::processor::CodexProcessor;
-use glob::glob;
 use llm_engine::performer::LLMEngine;
+use persistence::snapshot::Snapshot;
 use representation::filters::{FilterAggregate, GitignoreFilter};
 use representation::tree::TreeIter;
-use representation::tree::TreeProcessor;
-use representation::tree_representation::TreeRepresentation;
 use std::path::Path;
 use tool::{BlobTool, Commands};
 
 mod blob;
 mod codex;
 mod llm_engine;
+mod persistence;
 mod representation;
 mod tool;
 
@@ -23,6 +19,8 @@ async fn main() {
     let cli = BlobTool::parse();
 
     let mut engine = LLMEngine::new();
+
+    let mut filters = FilterAggregate::default();
 
     match &cli.command {
         Commands::Create { path, instruction } => {
@@ -68,7 +66,6 @@ async fn main() {
         }
 
         Commands::Do { path, instruction } => {
-            let mut filters = FilterAggregate::default();
             let dir = Path::new(path.as_ref().unwrap());
             // let mut processor = TreeRepresentation::new();
 
@@ -82,11 +79,22 @@ async fn main() {
                 .generate_proposal(tree_iter.by_ref(), instruction.as_ref().unwrap().clone())
                 .await;
 
-            let current_dir = dir.to_str().unwrap().clone();
+            let path_root = String::from(dir.to_str().unwrap().clone());
 
-            println!("{current_dir}");
-            println!("{current_structure}");
-            println!("{proposed_structure}");
+            let snp = Snapshot::new(
+                path_root,
+                current_structure,
+                proposed_structure,
+                instruction.as_ref().unwrap().clone(),
+            );
+
+            let bash_guide = snp.generate_prompt();
+
+            println!("{bash_guide}");
+
+            // println!("{current_dir}");
+            // println!("{current_structure}");
+            // println!("{proposed_structure}");
 
             // println!("Planning edits to {:?}", path);
 
