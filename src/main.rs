@@ -4,7 +4,7 @@ use representation::filters::{FilterAggregate, GitignoreFilter};
 use representation::tree::TreeIter;
 use std::path::Path;
 use tool::tool::{BlobTool, Commands};
-use transformer::mutation::Mutation;
+use transformer::mutation::MutationInit;
 
 mod blob;
 mod codex;
@@ -19,7 +19,6 @@ async fn main() {
     let cli = BlobTool::parse();
 
     let mut engine = LLMEngine::new();
-    let mut filters = FilterAggregate::default();
 
     match &cli.command {
         Commands::Init { path, instruction } => {
@@ -66,8 +65,11 @@ async fn main() {
 
         Commands::Do { path, instruction } => {
             // Snapshot::new_full
-            let mut mutation = Mutation::new_from_root(path.clone().unwrap());
+            let mutation = MutationInit::new(path.clone().unwrap(), instruction.clone().unwrap());
 
+            let generated_script = engine
+                .generate_transformer(Box::new(mutation), instruction.clone().unwrap())
+                .await;
             // let path_str = path.as_ref().unwrap();
             // let root = Path::new(path_str).to_owned();
 
@@ -94,17 +96,15 @@ async fn main() {
 
             // // println!("{bash_guide}");
 
-            mutation
-                .generate_proposal(&mut engine, instruction.clone().unwrap())
-                .await;
+            // mutation.generate_proposal(&mut engine).await;
 
-            let b = mutation.generate_prompt().unwrap();
+            // let b = mutation.generate_prompt().unwrap();
 
             // let completed_bash = mutation.extend_with_llm(&mut engine).await;
 
             // let b = completed_bash.unwrap();
 
-            println!("{b}");
+            println!("{generated_script}");
             // snp.
 
             // println!("{current_dir}");

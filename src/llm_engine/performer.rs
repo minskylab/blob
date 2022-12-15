@@ -5,7 +5,7 @@ use crate::representation::{
     tree::{TreeIter, TreeProcessor},
     tree_representation::TreeRepresentation,
 };
-use crate::transformer::mutation::Mutation;
+use crate::transformer::mutation::{MutationExtended, MutationInit};
 
 pub struct LLMEngine {
     llm_representation: TreeRepresentation,
@@ -28,10 +28,11 @@ impl LLMEngine {
 
     pub async fn generate_proposal(
         &mut self,
-        root_tree: &mut TreeIter,
+        mut mutation_init: Box<MutationInit>,
         prompt: String,
-    ) -> Mutation {
-        let context = self.generate_context(root_tree);
+    ) -> MutationExtended {
+        let mut root_tree = mutation_init.tree_iter();
+        let context = self.generate_context(root_tree.as_mut());
 
         let edit = self
             .codex_processor
@@ -40,16 +41,19 @@ impl LLMEngine {
             .await
             .unwrap();
 
-        Mutation::new_full(
-            root_tree.root().to_string_lossy().to_string(),
+        MutationExtended::new_from_parent(
+            mutation_init,
             context.clone(),
             edit.choices.first().unwrap().text.clone(),
-            prompt.clone(),
         )
     }
 
-    pub async fn generate_transformer(&mut self, root: &mut TreeIter, prompt: String) -> String {
-        let snapshot = self.generate_proposal(root, prompt).await;
+    pub async fn generate_transformer(
+        &mut self,
+        mutation_init: Box<MutationInit>,
+        prompt: String,
+    ) -> String {
+        let snapshot = self.generate_proposal(mutation_init, prompt).await;
 
         let next_prompt = snapshot.generate_prompt().unwrap();
 
