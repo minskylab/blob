@@ -4,7 +4,7 @@ extern crate git2;
 
 use self::git2::Repository;
 use std::error::Error;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::result;
 
 type Result = result::Result<bool, Box<dyn Error>>;
@@ -139,8 +139,8 @@ pub struct GitignoreFilter {
 
 impl GitignoreFilter {
     /// Create a new filter rooted at `path`.
-    pub fn new(path: &Path) -> Option<result::Result<GitignoreFilter, Box<dyn Error>>> {
-        let result = Repository::discover(path).map(|repo| GitignoreFilter { repo: repo });
+    pub fn new(path: PathBuf) -> Option<result::Result<GitignoreFilter, Box<dyn Error>>> {
+        let result = Repository::discover(path).map(|repo| GitignoreFilter { repo });
 
         match result {
             Err(err) => {

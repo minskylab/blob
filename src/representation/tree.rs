@@ -112,29 +112,43 @@ impl Iterator for FilteredDir {
 pub struct TreeIter {
     dir_stack: Vec<Peekable<FilteredDir>>,
     file_filter: Rc<dyn FileFilter>,
+    root: PathBuf,
 }
 
 impl TreeIter {
     /// Create a new iterator with `path` as root.
-    pub fn new<P, F>(path: P, file_filter: F) -> Result<Self, Box<dyn Error>>
+    pub fn new<F>(path: PathBuf, file_filter: F) -> Result<Self, Box<dyn Error>>
     where
-        P: AsRef<Path>,
+        // P: AsRef<Path>,
         F: FileFilter + 'static,
     {
         let rc_filter = Rc::new(file_filter);
+        // let f = Rc::new(path.as_ref().clone());
+        // let boxed_path = Rc::new(path);
 
-        fs::read_dir(path)
+        let p = path.clone();
+        let p1 = path.clone();
+
+        fs::read_dir(p)
             .map(|dir| {
                 let filtered = FilteredDir {
                     file_filter: rc_filter.clone(),
-                    dir: dir,
+                    dir,
                 };
+
+                // let p = Rc::new(path.as_ref().clone());
+
                 TreeIter {
                     dir_stack: vec![filtered.peekable()],
                     file_filter: rc_filter,
+                    root: p1,
                 }
             })
             .map_err(From::from)
+    }
+
+    pub fn root(&self) -> &Path {
+        self.root.as_ref()
     }
 }
 

@@ -1,10 +1,9 @@
 use clap::Parser;
 use llm_engine::performer::LLMEngine;
-use persistence::snapshot::Snapshot;
 use representation::filters::{FilterAggregate, GitignoreFilter};
 use representation::tree::TreeIter;
 use std::path::Path;
-use tool::{BlobTool, Commands};
+use tool::tool::{BlobTool, Commands};
 
 mod blob;
 mod codex;
@@ -19,7 +18,6 @@ async fn main() {
     let cli = BlobTool::parse();
 
     let mut engine = LLMEngine::new();
-
     let mut filters = FilterAggregate::default();
 
     match &cli.command {
@@ -66,31 +64,38 @@ async fn main() {
         }
 
         Commands::Do { path, instruction } => {
-            let dir = Path::new(path.as_ref().unwrap());
-            // let mut processor = TreeRepresentation::new();
+            let path_str = path.as_ref().unwrap();
+            let root = Path::new(path_str).to_owned();
 
-            let github_filter = GitignoreFilter::new(dir).unwrap().unwrap();
+            let github_filter = GitignoreFilter::new(root.clone()).unwrap().unwrap();
 
             filters.push(github_filter);
 
-            let mut tree_iter = TreeIter::new(dir, filters).unwrap();
+            let mut tree_iter = TreeIter::new(root, filters).unwrap();
 
-            let (current_structure, proposed_structure) = engine
+            let snp = engine
                 .generate_proposal(tree_iter.by_ref(), instruction.as_ref().unwrap().clone())
                 .await;
 
-            let path_root = String::from(dir.to_str().unwrap().clone());
+            // // let path_root = String::from(root.to_str().unwrap().clone());
 
-            let snp = Snapshot::new(
-                path_root,
-                current_structure,
-                proposed_structure,
-                instruction.as_ref().unwrap().clone(),
-            );
+            // // let snp = Snapshot::new(
+            // //     path_root,
+            // //     current_structure,
+            // //     proposed_structure,
+            // //     instruction.as_ref().unwrap().clone(),
+            // // );
 
-            let bash_guide = snp.generate_prompt();
+            let bash_guide = snp.generate_prompt().unwrap();
 
-            println!("{bash_guide}");
+            // println!("{bash_guide}");
+
+            let completed_bash = engine
+                .generate_transformer(tree_iter.by_ref(), bash_guide)
+                .await;
+
+            println!("{completed_bash}");
+            // snp.
 
             // println!("{current_dir}");
             // println!("{current_structure}");
