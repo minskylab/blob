@@ -4,13 +4,14 @@ use representation::filters::{FilterAggregate, GitignoreFilter};
 use representation::tree::TreeIter;
 use std::path::Path;
 use tool::tool::{BlobTool, Commands};
+use transformer::mutation::Mutation;
 
 mod blob;
 mod codex;
 mod llm_engine;
-mod persistence;
 mod representation;
 mod tool;
+mod transformer;
 
 #[tokio::main]
 
@@ -21,7 +22,7 @@ async fn main() {
     let mut filters = FilterAggregate::default();
 
     match &cli.command {
-        Commands::Create { path, instruction } => {
+        Commands::Init { path, instruction } => {
             println!("Applying edits to {:?}", path);
 
             // let path_str = path.as_ref().unwrap();
@@ -64,37 +65,46 @@ async fn main() {
         }
 
         Commands::Do { path, instruction } => {
-            let path_str = path.as_ref().unwrap();
-            let root = Path::new(path_str).to_owned();
+            // Snapshot::new_full
+            let mut mutation = Mutation::new_from_root(path.clone().unwrap());
 
-            let github_filter = GitignoreFilter::new(root.clone()).unwrap().unwrap();
+            // let path_str = path.as_ref().unwrap();
+            // let root = Path::new(path_str).to_owned();
 
-            filters.push(github_filter);
+            // let github_filter = GitignoreFilter::new(root.clone()).unwrap().unwrap();
 
-            let mut tree_iter = TreeIter::new(root, filters).unwrap();
+            // filters.push(github_filter);
 
-            let snp = engine
-                .generate_proposal(tree_iter.by_ref(), instruction.as_ref().unwrap().clone())
+            // let mut tree_iter = TreeIter::new(root, filters).unwrap();
+
+            // let snp = engine
+            //     .generate_proposal(tree_iter.by_ref(), instruction.as_ref().unwrap().clone())
+            //     .await;
+
+            // // // let path_root = String::from(root.to_str().unwrap().clone());
+
+            // // // let snp = Snapshot::new(
+            // // //     path_root,
+            // // //     current_structure,
+            // // //     proposed_structure,
+            // // //     instruction.as_ref().unwrap().clone(),
+            // // // );
+
+            // let bash_guide = snp.generate_prompt().unwrap();
+
+            // // println!("{bash_guide}");
+
+            mutation
+                .generate_proposal(&mut engine, instruction.clone().unwrap())
                 .await;
 
-            // // let path_root = String::from(root.to_str().unwrap().clone());
+            let b = mutation.generate_prompt().unwrap();
 
-            // // let snp = Snapshot::new(
-            // //     path_root,
-            // //     current_structure,
-            // //     proposed_structure,
-            // //     instruction.as_ref().unwrap().clone(),
-            // // );
+            // let completed_bash = mutation.extend_with_llm(&mut engine).await;
 
-            let bash_guide = snp.generate_prompt().unwrap();
+            // let b = completed_bash.unwrap();
 
-            // println!("{bash_guide}");
-
-            let completed_bash = engine
-                .generate_transformer(tree_iter.by_ref(), bash_guide)
-                .await;
-
-            println!("{completed_bash}");
+            println!("{b}");
             // snp.
 
             // println!("{current_dir}");
@@ -106,6 +116,9 @@ async fn main() {
             // let tree = processor.construct(&mut tree_iter).unwrap();
 
             // println!("{tree}");
+        }
+        Commands::Context { path, instruction } => {
+            println!("Applying edits to {:?}", path);
         }
     }
 }

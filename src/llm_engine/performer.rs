@@ -1,11 +1,11 @@
 use std::path::Path;
 
 use crate::codex::processor::CodexProcessor;
-use crate::persistence::snapshot::Snapshot;
 use crate::representation::{
     tree::{TreeIter, TreeProcessor},
     tree_representation::TreeRepresentation,
 };
+use crate::transformer::mutation::Mutation;
 
 pub struct LLMEngine {
     llm_representation: TreeRepresentation,
@@ -26,8 +26,12 @@ impl LLMEngine {
         self.llm_representation.construct(root).unwrap()
     }
 
-    pub async fn generate_proposal(&mut self, rootTree: &mut TreeIter, prompt: String) -> Snapshot {
-        let context = self.generate_context(rootTree);
+    pub async fn generate_proposal(
+        &mut self,
+        root_tree: &mut TreeIter,
+        prompt: String,
+    ) -> Mutation {
+        let context = self.generate_context(root_tree);
 
         let edit = self
             .codex_processor
@@ -36,8 +40,8 @@ impl LLMEngine {
             .await
             .unwrap();
 
-        Snapshot::new(
-            rootTree.root().to_string_lossy().to_string(),
+        Mutation::new_full(
+            root_tree.root().to_string_lossy().to_string(),
             context.clone(),
             edit.choices.first().unwrap().text.clone(),
             prompt.clone(),

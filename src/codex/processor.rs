@@ -83,7 +83,7 @@ impl CodexProcessor {
                 {
                     "model": "text-davinci-003",
                     "prompt": prompt.into(),
-                    "max_tokens": 100,
+                    "max_tokens": 256,
                     "temperature": 0.2,
                     // "top_p": 1,
                     // "n": 1,
