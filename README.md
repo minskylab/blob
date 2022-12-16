@@ -1,6 +1,7 @@
 # Blob
 
-Blob is a OpenAI GPT-3 powered tool to bootstrap software projects, it's very experimental and I'm not sure if it will scale. 
+Blob is a LLM (Language Large Model) powered tool to create and work in software projects, it's very experimental and I'm not sure if it will scale. The main idea is interact with the source code in a "natural way" to accelerate the actual software development procedure.
+
 Actually only support OpenAI GPT-3 as a engine, but we're working in more adapters to make it compatible with more Open Source technology.
 
 ## Main Idea
