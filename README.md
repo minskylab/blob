@@ -1,6 +1,7 @@
 # Blob
 
-Blob is a OpenAI GPT-3 powered tool to bootstrap software projects, it's very experimental and I'm not sure if it will work.
+Blob is a OpenAI GPT-3 powered tool to bootstrap software projects, it's very experimental and I'm not sure if it will scale. 
+Actually only support OpenAI GPT-3 as a engine, but we're working in more adapters to make it compatible with more Open Source technology.
 
 ## Main Idea
 
