@@ -1,25 +1,15 @@
 use std::{path::Path, process::Command, time::SystemTime};
 
-use crate::{
-    llm_engine::performer::LLMEngine,
-    representation::{
-        filters::{FilterAggregate, GitignoreFilter},
-        tree::TreeIter,
-    },
+use crate::representation::{
+    filters::{FilterAggregate, GitignoreFilter},
+    tree::TreeIter,
 };
-
-#[derive(Copy, Clone, Debug)]
-pub enum MutationState {
-    Created,
-    Proposed,
-    Extended,
-}
 
 #[derive(Clone, Debug)]
 pub struct MutationError(String);
 
 // #[derive(Clone, Debug)]
-pub struct MutationExtended {
+pub struct MutationProposal {
     // parent: Box<&'a mut MutationInit<'a>>,
     parent: Box<MutationInit>,
     current_structure: String,
@@ -27,7 +17,7 @@ pub struct MutationExtended {
     // state: MutationState,
 }
 
-// #[derive(Debug)]
+// #[derive(Clone)]
 pub struct MutationInit {
     path_root: String,
     prompt: String,
@@ -68,7 +58,7 @@ impl MutationInit {
     }
 }
 
-impl MutationExtended {
+impl MutationProposal {
     // pub fn new_full(
     //     path_root: String,
     //     current_structure: String,

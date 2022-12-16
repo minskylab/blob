@@ -1,11 +1,9 @@
-use std::path::Path;
-
 use crate::codex::processor::CodexProcessor;
 use crate::representation::{
     tree::{TreeIter, TreeProcessor},
     tree_representation::TreeRepresentation,
 };
-use crate::transformer::mutation::{MutationExtended, MutationInit};
+use crate::transformer::mutation::{MutationInit, MutationProposal};
 
 pub struct LLMEngine {
     llm_representation: TreeRepresentation,
@@ -30,7 +28,7 @@ impl LLMEngine {
         &mut self,
         mut mutation_init: Box<MutationInit>,
         prompt: String,
-    ) -> MutationExtended {
+    ) -> MutationProposal {
         let mut root_tree = mutation_init.tree_iter();
         let context = self.generate_context(root_tree.as_mut());
 
@@ -41,7 +39,7 @@ impl LLMEngine {
             .await
             .unwrap();
 
-        MutationExtended::new_from_parent(
+        MutationProposal::new_from_parent(
             mutation_init,
             context.clone(),
             edit.choices.first().unwrap().text.clone(),

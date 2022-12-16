@@ -229,6 +229,16 @@ impl Iterator for TreeIter {
     }
 }
 
+// impl Clone for TreeIter {
+//     fn clone(&self) -> Self {
+//         // let foo = self.dir_stack.();
+//         Self {
+//             dir_stack: Box::new(self.dir_stack),
+//             file_filter: self.file_filter.clone(),
+//             root: self.root.clone(),
+//         }
+//     }
+// }
 /// A generic trait for processing the output of `TreeIter`.
 pub trait TreeProcessor {
     fn close_dir(&mut self);

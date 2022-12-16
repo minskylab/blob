@@ -1,5 +1,13 @@
+use std::{
+    future::{self, Future},
+    io,
+};
+
+use async_trait::async_trait;
 use reqwest::{header::HeaderMap, Client, Error};
 use serde_json::json;
+
+use crate::llm_engine::processor::LLMProcessor;
 
 use super::codex_responses::{CompletionResponse, EditResponse};
 
@@ -21,7 +29,7 @@ impl CodexProcessor {
         }
     }
 
-    pub async fn edit_call(
+    pub async fn api_edit_call(
         self: Self,
         input: impl Into<String>,
         instruction: impl Into<String>,
@@ -60,7 +68,7 @@ impl CodexProcessor {
         // Ok(data["choices"][0]["text"].as_str().unwrap().to_string())
     }
 
-    pub async fn completions_call(
+    pub async fn api_completions_call(
         self: Self,
         prompt: impl Into<String>,
     ) -> Result<CompletionResponse, Error> {
@@ -97,5 +105,34 @@ impl CodexProcessor {
 
         let data = response.json::<CompletionResponse>().await?;
         Ok(data)
+    }
+}
+
+#[async_trait]
+impl LLMProcessor for CodexProcessor {
+    async fn edit_call(
+        self: Self,
+        input: impl Into<String>,
+        instruction: impl Into<String>,
+    ) -> dyn Future::Output<Result<String, Error>> + std::marker::Send {
+        let data = self
+            .api_edit_call(input.into(), instruction.into())
+            .await
+            .unwrap();
+
+        future::ready(Ok(data.choices.first().unwrap().text.clone()))
+        // Ok(data.choices.first().unwrap().text.clone())
+        //     .unwrap();
+
+        // Ok(data.choices.first().unwrap().text.clone()).await
+    }
+
+    async fn completions_call(
+        self: Self,
+        prompt: impl Into<String>,
+    ) -> future::Ready<Result<String, Error>> {
+        let data = self.api_completions_call(prompt.into()).await.unwrap();
+
+        Ok(data.choices.first().unwrap().text.clone())
     }
 }
