@@ -1,5 +1,9 @@
 # Blob
 
+<p align="center">
+  <img width="460" src="assets/blob.png">
+</p>
+
 ```
 self-reference is all you need
 ```
