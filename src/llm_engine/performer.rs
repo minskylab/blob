@@ -1,11 +1,11 @@
-use std::path::Path;
-
 use crate::codex::processor::CodexProcessor;
 use crate::representation::{
     tree::{TreeIter, TreeProcessor},
     tree_representation::TreeRepresentation,
 };
-use crate::transformer::mutation::{MutationExtended, MutationInit};
+use crate::transformer::mutation::{
+    ProjectMutationDraft, ProjectMutationExtended, ProjectMutationScripted,
+};
 
 pub struct LLMEngine {
     llm_representation: TreeRepresentation,
@@ -28,11 +28,13 @@ impl LLMEngine {
 
     pub async fn generate_proposal(
         &mut self,
-        mut mutation_init: Box<MutationInit>,
-        prompt: String,
-    ) -> MutationExtended {
-        let mut root_tree = mutation_init.tree_iter();
+        mut mutation_draft: Box<ProjectMutationDraft>,
+        // prompt: String,
+    ) -> Box<ProjectMutationExtended> {
+        let mut root_tree = mutation_draft.tree_iter();
         let context = self.generate_context(root_tree.as_mut());
+
+        let prompt = mutation_draft.prompt();
 
         let edit = self
             .codex_processor
@@ -41,21 +43,23 @@ impl LLMEngine {
             .await
             .unwrap();
 
-        MutationExtended::new_from_parent(
-            mutation_init,
+        Box::new(ProjectMutationExtended::new_from_parent(
+            mutation_draft,
             context.clone(),
             edit.choices.first().unwrap().text.clone(),
-        )
+        ))
     }
 
-    pub async fn generate_transformer(
+    pub async fn generate_bash_script(
         &mut self,
-        mutation_init: Box<MutationInit>,
-        prompt: String,
-    ) -> String {
-        let snapshot = self.generate_proposal(mutation_init, prompt).await;
+        mutation_draft: Box<ProjectMutationDraft>,
+        // prompt: String,
+    ) -> ProjectMutationScripted {
+        // let prompt = mutation_init.prompt();
 
-        let next_prompt = snapshot.generate_prompt().unwrap();
+        let snapshot = self.generate_proposal(mutation_draft).await;
+
+        let next_prompt = snapshot.clone().generate_prompt().unwrap();
 
         let completion = self
             .codex_processor
@@ -64,6 +68,14 @@ impl LLMEngine {
             .await
             .unwrap();
 
-        completion.choices.first().unwrap().text.clone()
+        let full_script = format!(
+            "{}{}",
+            next_prompt,
+            completion.choices.first().unwrap().text
+        );
+
+        ProjectMutationScripted::new_from_parent(snapshot.clone(), full_script)
+
+        // completion.choices.first().unwrap().text.clone()
     }
 }

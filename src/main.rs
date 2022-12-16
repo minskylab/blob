@@ -1,10 +1,7 @@
 use clap::Parser;
 use llm_engine::performer::LLMEngine;
-use representation::filters::{FilterAggregate, GitignoreFilter};
-use representation::tree::TreeIter;
-use std::path::Path;
 use tool::tool::{BlobTool, Commands};
-use transformer::mutation::MutationInit;
+use transformer::mutation::ProjectMutationDraft;
 
 mod blob;
 mod codex;
@@ -65,11 +62,11 @@ async fn main() {
 
         Commands::Do { path, instruction } => {
             // Snapshot::new_full
-            let mutation = MutationInit::new(path.clone().unwrap(), instruction.clone().unwrap());
+            let mutation =
+                ProjectMutationDraft::new(path.clone().unwrap(), instruction.clone().unwrap());
 
-            let generated_script = engine
-                .generate_transformer(Box::new(mutation), instruction.clone().unwrap())
-                .await;
+            let mutation_scripted = engine.generate_bash_script(Box::new(mutation)).await;
+            let generated_script = mutation_scripted.bash_script();
             // let path_str = path.as_ref().unwrap();
             // let root = Path::new(path_str).to_owned();
 

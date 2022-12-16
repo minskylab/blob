@@ -57,10 +57,23 @@ impl fmt::Debug for Entry {
 }
 
 /// An iterator yielding only the entries in dir where `file_filter` returns true.
+
+// #[derive(Clone)]
 struct FilteredDir {
     file_filter: Rc<dyn FileFilter>,
     dir: fs::ReadDir,
 }
+
+// impl Clone for FilteredDir {
+//     fn clone(&self) -> Self {
+//         let dir = self.dir.collect();
+
+//         Self {
+//             file_filter: self.file_filter.clone(),
+//             dir,
+//         }
+//     }
+// }
 
 impl FilteredDir {
     pub fn new<P>(path: P, file_filter: Rc<dyn FileFilter>) -> Result<Self, Box<dyn Error>>
@@ -108,6 +121,8 @@ impl Iterator for FilteredDir {
         }
     }
 }
+
+// #[derive(Clone)]
 
 pub struct TreeIter {
     dir_stack: Vec<Peekable<FilteredDir>>,
