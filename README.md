@@ -1,5 +1,9 @@
 # Blob
 
+```
+self-reference is all you need
+```
+
 Blob is a LLM (Language Large Model) powered tool to create and work in software projects, it's very experimental and I'm not sure if the actual implementation can scale. The main idea is interact with the source code in a "natural way" to accelerate the actual software development procedure.
 
 Actually only support OpenAI GPT-3 as a engine, but we're working in more adapters to make it compatible with more Open Source technology.
