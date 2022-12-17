@@ -1,3 +1,4 @@
 /target
 _blobs
 .env
+.blob

@@ -1,4 +1,5 @@
-use std::{path::Path, process::Command, time::SystemTime};
+use chrono::{DateTime, Utc};
+use std::{path::Path, process::Command};
 
 use crate::representation::{
     filters::{FilterAggregate, GitignoreFilter},
@@ -11,17 +12,17 @@ pub struct MutationError(String);
 #[derive(Clone, Debug)]
 
 pub struct ProjectMutationDraft {
-    path_root: String,
-    prompt: String,
+    pub path_root: String,
+    pub prompt: String,
 
-    created_at: SystemTime,
+    pub created_at: DateTime<Utc>,
     // tree_iter: Option<Box<TreeIter>>,
 }
 
 #[derive(Clone, Debug)]
 
 pub struct ProjectMutationExtended {
-    parent: Box<ProjectMutationDraft>,
+    pub parent: Box<ProjectMutationDraft>,
     current_structure: String,
     proposed_structure: String,
     // state: MutationState,
@@ -29,18 +30,18 @@ pub struct ProjectMutationExtended {
 
 #[derive(Clone, Debug)]
 pub struct ProjectMutationScripted {
-    parent: Box<ProjectMutationExtended>,
-    bash_script: String,
+    pub parent: Box<ProjectMutationExtended>,
+    pub bash_script: String,
 }
 
 // #[derive(Debug)]
 
 impl ProjectMutationDraft {
     pub fn new(path_root: String, prompt: String) -> Self {
-        let mut s = ProjectMutationDraft {
+        let s = ProjectMutationDraft {
             path_root,
             prompt,
-            created_at: SystemTime::now(),
+            created_at: Utc::now(),
             // tree_iter: None,
         };
 
@@ -141,7 +142,7 @@ impl ProjectMutationScripted {
         }
     }
 
-    pub fn bash_script(&self) -> &str {
-        &self.bash_script
-    }
+    // pub fn bash_script(&self) -> &str {
+    //     &self.bash_script
+    // }
 }

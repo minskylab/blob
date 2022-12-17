@@ -1,4 +1,8 @@
+use std::process::Command;
+
+use blob::blob::BlobTemporalContextProcessor;
 use clap::Parser;
+use dotenv::dotenv;
 use llm_engine::performer::LLMEngine;
 use tool::tool::{BlobTool, Commands};
 use transformer::mutation::ProjectMutationDraft;
@@ -13,9 +17,12 @@ mod transformer;
 #[tokio::main]
 
 async fn main() {
+    dotenv().ok();
+
     let cli = BlobTool::parse();
 
     let mut engine = LLMEngine::new();
+    let context_processor = BlobTemporalContextProcessor::new();
 
     match &cli.command {
         Commands::Init { path, instruction } => {
@@ -66,9 +73,40 @@ async fn main() {
                 ProjectMutationDraft::new(path.clone().unwrap(), instruction.clone().unwrap());
 
             let mutation_scripted = engine.generate_bash_script(Box::new(mutation)).await;
-            let generated_script = mutation_scripted.bash_script();
+            // let generated_script = mutation_scripted.bash_script;
             // let path_str = path.as_ref().unwrap();
             // let root = Path::new(path_str).to_owned();
+            // let now: DateTime<Utc> = Utc::now();
+            // println!("UTC now is: {}", now.to_rfc3339());
+
+            println!("{}", mutation_scripted.parent.parent.created_at);
+
+            let script_path = context_processor.save_new_context(mutation_scripted);
+
+            println!("Script saved to {script_path}");
+
+            print!("Do you want to apply this mutation? (y/n)\n>");
+
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).unwrap();
+
+            if input.trim() == "y" {
+                println!("Applying edits to {}", path.clone().unwrap());
+                // let mutation = context_processor
+                //     .load_context(script_path)
+                //     .unwrap()
+                //     .unwrap();
+
+                // let completed_bash = mutation.extend_with_llm(&mut engine).await;
+
+                // let b = completed_bash.unwrap();
+                let res = Command::new("bash").arg(script_path).output().unwrap();
+                let output = String::from_utf8_lossy(&res.stdout);
+
+                println!("{}", output);
+            } else {
+                println!("Mutation cancelled");
+            }
 
             // let github_filter = GitignoreFilter::new(root.clone()).unwrap().unwrap();
 
@@ -101,7 +139,7 @@ async fn main() {
 
             // let b = completed_bash.unwrap();
 
-            println!("{generated_script}");
+            // println!("{generated_script}");
             // snp.
 
             // println!("{current_dir}");

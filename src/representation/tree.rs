@@ -127,7 +127,6 @@ impl Iterator for FilteredDir {
 pub struct TreeIter {
     dir_stack: Vec<Peekable<FilteredDir>>,
     file_filter: Rc<dyn FileFilter>,
-    root: PathBuf,
 }
 
 impl TreeIter {
@@ -142,7 +141,6 @@ impl TreeIter {
         // let boxed_path = Rc::new(path);
 
         let p = path.clone();
-        let p1 = path.clone();
 
         fs::read_dir(p)
             .map(|dir| {
@@ -156,15 +154,15 @@ impl TreeIter {
                 TreeIter {
                     dir_stack: vec![filtered.peekable()],
                     file_filter: rc_filter,
-                    root: p1,
+                    // root: p1,
                 }
             })
             .map_err(From::from)
     }
 
-    pub fn root(&self) -> &Path {
-        self.root.as_ref()
-    }
+    // pub fn root(&self) -> &Path {
+    //     self.root.as_ref()
+    // }
 }
 
 fn has_next_sibling<T, E, I: Iterator<Item = Result<T, E>>>(dir: &mut Peekable<I>) -> bool {

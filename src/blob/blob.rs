@@ -1,3 +1,9 @@
+use std::os::unix::fs::PermissionsExt;
+use std::{
+    fs::{create_dir_all, File},
+    io::Write,
+};
+
 // use serde_json::Value;
 // use std::time::SystemTime;
 
@@ -89,3 +95,44 @@
 //     //     Blob::new(blob_path)
 //     // }
 // }
+
+use crate::transformer::mutation::ProjectMutationScripted;
+
+pub struct BlobTemporalContextProcessor {}
+
+impl BlobTemporalContextProcessor {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn save_new_context(&self, project_scripted_mutation: ProjectMutationScripted) -> String {
+        let root = project_scripted_mutation.parent.parent.path_root;
+
+        let timed_name = project_scripted_mutation
+            .parent
+            .parent
+            .created_at
+            .format("%Y%m%d%H%M%S")
+            .to_string();
+
+        let new_context_path = format!("{root}/.blob/{timed_name}");
+        // save project_scripted_mutation.bash_script to file called script.sh
+        create_dir_all(new_context_path.clone()).unwrap();
+
+        let bash_script = project_scripted_mutation.bash_script;
+
+        let final_script_path = format!("{new_context_path}/script.sh");
+
+        let mut file = File::create(final_script_path.clone()).unwrap();
+
+        let metadata = file.metadata().unwrap();
+
+        let mut permissions = metadata.permissions();
+
+        permissions.set_mode(0o645);
+
+        file.write_all(bash_script.as_bytes()).unwrap();
+
+        final_script_path
+    }
+}
