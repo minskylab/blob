@@ -1,7 +1,7 @@
 use crate::codex::processor::CodexProcessor;
 use crate::representation::{
-    tree::{TreeIter, TreeProcessor},
-    tree_representation::TreeRepresentation,
+    tree::iterator::{TreeIter, TreeProcessor},
+    tree::representation::TreeRepresentation,
 };
 use crate::transformer::mutation::{
     ProjectMutationDraft, ProjectMutationExtended, ProjectMutationScripted,
@@ -26,10 +26,9 @@ impl LLMEngine {
         self.llm_representation.construct(root).unwrap()
     }
 
-    pub async fn generate_proposal(
+    pub async fn generate_structure_proposal(
         &mut self,
         mut mutation_draft: Box<ProjectMutationDraft>,
-        // prompt: String,
     ) -> Box<ProjectMutationExtended> {
         let mut root_tree = mutation_draft.tree_iter();
         let context = self.generate_context(root_tree.as_mut());
@@ -53,11 +52,8 @@ impl LLMEngine {
     pub async fn generate_bash_script(
         &mut self,
         mutation_draft: Box<ProjectMutationDraft>,
-        // prompt: String,
     ) -> ProjectMutationScripted {
-        // let prompt = mutation_init.prompt();
-
-        let snapshot = self.generate_proposal(mutation_draft).await;
+        let snapshot = self.generate_structure_proposal(mutation_draft).await;
 
         let next_prompt = snapshot.clone().generate_prompt().unwrap();
 
@@ -68,14 +64,10 @@ impl LLMEngine {
             .await
             .unwrap();
 
-        let full_script = format!(
-            "{}{}",
-            next_prompt,
-            completion.choices.first().unwrap().text
-        );
+        let predicted_commands = completion.choices.first().unwrap().text.clone();
 
-        ProjectMutationScripted::new_from_parent(snapshot.clone(), full_script)
+        let full_script = format!("{}{}", next_prompt, predicted_commands);
 
-        // completion.choices.first().unwrap().text.clone()
+        ProjectMutationScripted::new_from_parent(snapshot.clone(), predicted_commands, full_script)
     }
 }

@@ -3,7 +3,7 @@ use std::{path::Path, process::Command};
 
 use crate::representation::{
     filters::{FilterAggregate, GitignoreFilter},
-    tree::TreeIter,
+    tree::iterator::TreeIter,
 };
 
 #[derive(Clone, Debug)]
@@ -31,25 +31,20 @@ pub struct ProjectMutationExtended {
 #[derive(Clone, Debug)]
 pub struct ProjectMutationScripted {
     pub parent: Box<ProjectMutationExtended>,
-    pub bash_script: String,
+    pub predicted_commands: String,
+    pub full_script: String,
 }
 
 // #[derive(Debug)]
 
 impl ProjectMutationDraft {
     pub fn new(path_root: String, prompt: String) -> Self {
-        let s = ProjectMutationDraft {
+        ProjectMutationDraft {
             path_root,
             prompt,
             created_at: Utc::now(),
             // tree_iter: None,
-        };
-
-        s
-
-        // s.tree_iter = Some(s.calculate_tree_iter());
-
-        // s
+        }
     }
 
     fn calculate_tree_iter(&self) -> Box<TreeIter> {
@@ -135,14 +130,15 @@ cd {}
 }
 
 impl ProjectMutationScripted {
-    pub fn new_from_parent(parent: Box<ProjectMutationExtended>, bash_script: String) -> Self {
+    pub fn new_from_parent(
+        parent: Box<ProjectMutationExtended>,
+        predicted_commands: String,
+        full_script: String,
+    ) -> Self {
         Self {
             parent,
-            bash_script,
+            predicted_commands,
+            full_script,
         }
     }
-
-    // pub fn bash_script(&self) -> &str {
-    //     &self.bash_script
-    // }
 }

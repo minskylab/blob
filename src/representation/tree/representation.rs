@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::fmt::Display;
 use std::path::Path;
 
-use super::tree::{Entry, TreeProcessor};
+use super::iterator::{Entry, TreeProcessor};
 
 pub struct TreeRepresentation {
     dir_has_next: Vec<bool>,

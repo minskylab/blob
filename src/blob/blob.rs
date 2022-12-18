@@ -98,9 +98,9 @@ use std::{
 
 use crate::transformer::mutation::ProjectMutationScripted;
 
-pub struct BlobTemporalContextProcessor {}
+pub struct BlobContextProcessor {}
 
-impl BlobTemporalContextProcessor {
+impl BlobContextProcessor {
     pub fn new() -> Self {
         Self {}
     }
@@ -119,7 +119,7 @@ impl BlobTemporalContextProcessor {
         // save project_scripted_mutation.bash_script to file called script.sh
         create_dir_all(new_context_path.clone()).unwrap();
 
-        let bash_script = project_scripted_mutation.bash_script;
+        let bash_script = project_scripted_mutation.full_script;
 
         let final_script_path = format!("{new_context_path}/script.sh");
 
