@@ -13,18 +13,9 @@ pub struct BlobTool {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Init a new blob project (only a context for your edits)
-    Init {
-        #[arg(short, long)]
-        name: Option<String>,
-    },
+    /// Do an edit on a blob project through the OpenAI Codex API.
+    Do { instruction: Option<String> },
 
-    /// Do an edit on a blob project through the OpenAI Codex API
-    Do {
-        instruction: Option<String>,
-    },
-
-    Define {
-        definition: Option<String>,
-    },
+    /// Give a definition related to the project, util to increase the quality of the model predictions.
+    Define { definition: Option<String> },
 }

@@ -15,6 +15,7 @@ pub struct ProjectMutationDraft {
     pub path_root: String,
     pub prompt: String,
 
+    pub context_lines: Option<Vec<String>>,
     pub created_at: DateTime<Utc>,
     // tree_iter: Option<Box<TreeIter>>,
 }
@@ -38,10 +39,11 @@ pub struct ProjectMutationScripted {
 // #[derive(Debug)]
 
 impl ProjectMutationDraft {
-    pub fn new(path_root: String, prompt: String) -> Self {
+    pub fn new(path_root: String, prompt: String, context_lines: Vec<String>) -> Self {
         ProjectMutationDraft {
             path_root,
             prompt,
+            context_lines: Some(context_lines),
             created_at: Utc::now(),
             // tree_iter: None,
         }
@@ -88,19 +90,22 @@ impl ProjectMutationExtended {
         let ls_command = Command::new("ls").output().unwrap();
         let ls_result = String::from_utf8_lossy(&ls_command.stdout);
 
+        let context_definitions = self.parent.clone().context_lines.unwrap().join("\n");
+
         Ok(format!(
-            "
-#!/bin/bash
-# Context
+            "#!/bin/bash
 
-# current structure:
+# Context:
+# {}
+
+# Current structure:
 # {}
 # {}
 
-# prompt:
+# Desire prompt:
 # {}
 
-# proposed structure:
+# Proposed structure:
 # {}
 # {}
 
@@ -110,9 +115,10 @@ impl ProjectMutationExtended {
 # `ls`
 # {}
 
-# unix commands to perform this transformation:
+# Unix commands to perform this transformation:
 cd {}
 ",
+            context_definitions.trim_end().replace("\n", "\n# "),
             self.parent.as_ref().path_root,
             self.current_structure.trim_end().replace("\n", "\n# "),
             self.parent.as_ref().prompt.trim_end().replace("\n", "\n# "),

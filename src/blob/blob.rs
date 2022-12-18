@@ -2,105 +2,13 @@ use chrono::serde::ts_seconds_option;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
 
-use std::fs;
 use std::fs::OpenOptions;
+use std::io::Read;
 use std::os::unix::fs::PermissionsExt;
 use std::{
     fs::{create_dir_all, File},
     io::Write,
 };
-
-// use serde_json::Value;
-// use std::time::SystemTime;
-
-// pub struct BlobInteractionResponse {
-//     response: String,
-//     value: Value,
-// }
-
-// enum BlobInteractionKind {
-//     Complete,
-//     Edit,
-//     Insert,
-// }
-
-// pub struct BlobInteraction {
-//     timestamp: String,
-//     prompt: String,
-
-//     kind: BlobInteractionKind,
-
-//     response: Option<Box<BlobInteractionResponse>>,
-// }
-
-// pub struct BlobProject {
-//     pub root_path: String,
-//     dialogue: Vec<Box<BlobInteraction>>,
-// }
-
-// impl BlobProject {
-//     pub fn new(root_path: String) -> Self {
-//         Self {
-//             root_path,
-//             dialogue: Vec::new(),
-//         }
-//     }
-
-//     fn calculate_folder_structure(&self) -> String {
-//         let file_structure = String::new();
-
-//         file_structure
-//     }
-
-//     pub fn interact(&mut self, kind: BlobInteractionKind, prompt: String) {
-//         let timestamp = SystemTime::now()
-//             .duration_since(SystemTime::UNIX_EPOCH)
-//             .unwrap()
-//             .as_secs()
-//             .to_string();
-
-//         match kind {
-//             BlobInteractionKind::Complete => {
-//                 self.dialogue.push(Box::new(BlobInteraction {
-//                     timestamp,
-//                     prompt,
-//                     kind,
-//                     response: None,
-//                 }));
-//             }
-//             BlobInteractionKind::Edit => {
-//                 self.dialogue.push(Box::new(BlobInteraction {
-//                     timestamp,
-//                     prompt,
-//                     kind,
-//                     response: None,
-//                 }));
-//             }
-//             BlobInteractionKind::Insert => {
-//                 self.dialogue.push(Box::new(BlobInteraction {
-//                     timestamp,
-//                     prompt,
-//                     kind,
-//                     response: None,
-//                 }));
-//             }
-//         }
-
-//         // }
-
-//         // let dialogue = BlobDialogue {
-//         //     timestamp,
-//         //     interactions: vec![Box::new(interaction)],
-//         // };
-
-//         // self.dialogue.push(Box::new(dialogue));
-//     }
-
-//     // pub fn get_blob(&self, blob_name: &str) -> Blob {
-//     //     let blob_path = self.get_blob_path(blob_name);
-//     //     Blob::new(blob_path)
-//     // }
-// }
 
 use chrono::{DateTime, Utc};
 
@@ -116,6 +24,20 @@ pub struct BlobDefinition {
 
 pub struct BlobContextProcessor {}
 
+pub enum BlobDefinitionKind {
+    User,
+    // Meta,
+}
+
+impl BlobDefinitionKind {
+    fn as_filename(&self) -> &'static str {
+        match self {
+            BlobDefinitionKind::User => "user.md",
+            // BlobDefinitionKind::Meta => "meta.md",
+        }
+    }
+}
+
 impl BlobContextProcessor {
     pub fn new() -> Self {
         Self {}
@@ -129,12 +51,17 @@ impl BlobContextProcessor {
         format!("{root_path}/.blob/.mutations")
     }
 
-    pub fn save_new_definition(&self, root_path: String, definition: String) -> BlobDefinition {
+    pub fn save_new_definition(
+        &self,
+        root_path: String,
+        kind: BlobDefinitionKind,
+        definition: String,
+    ) -> BlobDefinition {
         let definitions_root = self.get_definitions_path(root_path.clone());
 
-        fs::create_dir_all(definitions_root.clone()).unwrap();
+        create_dir_all(definitions_root.clone()).unwrap();
 
-        let file_path = format!("{}/{}", definitions_root, "user_definitions.md".to_string());
+        let file_path = format!("{}/{}", definitions_root, kind.as_filename().to_string());
         // let mut file = File::create().unwrap();
 
         let mut file = OpenOptions::new()
@@ -144,15 +71,19 @@ impl BlobContextProcessor {
             .open(file_path)
             .unwrap();
 
+        let now = Utc::now();
+
         let def = BlobDefinition {
-            created_at: Some(Utc::now()),
-            definition,
+            created_at: Some(now),
+            definition: definition.clone(),
         };
 
-        let definition = serde_json::to_string(&def.clone()).unwrap();
-        let formatted_definition = format!("{}\n", definition);
+        let new_line_definition = format!("{}, {}\n", now.to_rfc3339(), definition);
 
-        file.write_all(formatted_definition.as_bytes()).unwrap();
+        // let definition = serde_json::to_string(&new_line_definition.clone()).unwrap();
+        // let formatted_definition = format!("{}\n", definition);
+
+        file.write_all(new_line_definition.as_bytes()).unwrap();
 
         def
     }
@@ -187,5 +118,47 @@ impl BlobContextProcessor {
         file.write_all(bash_script.as_bytes()).unwrap();
 
         final_script_path
+    }
+
+    pub fn retrieve_definitions(
+        &self,
+        root_path: String,
+        kind: BlobDefinitionKind,
+    ) -> Vec<BlobDefinition> {
+        let definitions_root = self.get_definitions_path(root_path.clone());
+        let file_path = format!("{}/{}", definitions_root, kind.as_filename().to_string());
+
+        let mut definitions = Vec::new();
+
+        let mut file = match File::open(file_path) {
+            Ok(file) => file,
+            Err(_) => return definitions,
+        };
+
+        let mut contents = String::new();
+
+        file.read_to_string(&mut contents).unwrap();
+
+        let lines = contents.split("\n");
+
+        for line in lines {
+            let parts = line.split(",").collect::<Vec<&str>>();
+
+            if parts.len() == 2 {
+                let created_at_str = parts[0].trim();
+                let definition = parts[1].trim();
+
+                let created_at = DateTime::parse_from_rfc3339(created_at_str).unwrap();
+
+                let def = BlobDefinition {
+                    created_at: Some(DateTime::from_utc(created_at.naive_utc(), Utc)),
+                    definition: definition.to_string(),
+                };
+
+                definitions.push(def);
+            }
+        }
+
+        definitions
     }
 }
