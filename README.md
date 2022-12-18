@@ -4,25 +4,21 @@
   <img width="460" src="assets/blob.png">
 </p>
 
-```
-self-reference is all you need
-```
-
 ## Definition
 
-Blob is a LLM (Language Large Model) powered tool to create and work in software projects, it's very experimental and I'm not sure if the actual implementation can scale. The main idea is interact with the source code in a "natural way" to accelerate the actual software development procedure.
+Blob is a powerful tool that uses language large models (LLMs) to assist in the creation and maintenance of software projects. It is designed to provide a more intuitive and efficient way to work with source code, enabling developers to focus on their ideas and logic rather than the technicalities of programming. Blob is still in the experimental phase and may not yet be able to handle large-scale projects, but we are actively working on improving its capabilities and scalability.
 
-Actually only support OpenAI GPT-3 as a engine, but we're working in more adapters to make it compatible with more Open Source technology.
+Currently, Blob utilizes OpenAI's GPT-3 as its underlying engine, but we are also exploring the integration of other open source technologies through the use of adapters. Our ultimate goal is to make Blob a versatile and adaptable tool that can be used in a wide range of projects and environments.
 
-## ⚠️ Warning
+## Warning
 
-This tool is under construction, so it's not ready for production, but you can try it if you want. The next steps are improve the documentation and publish the binaries.
+This tool is under construction and is not ready for production use. However, you are welcome to try it out if you wish. Our next steps are to improve the documentation and release binaries.
 
 ## Main Idea
 
-The principal idea of blob is create a **natural language reversible representation of the file structure** of the project, in this way, we can request to GPT-3 to generate a new file structure based on a natural language instructions. I try some representation, but actually the most simple and effective is a tree-like representation of the file structure.
+The main idea behind Blob is to create a **natural language reversible representation of the file structure** of a software project. This way, we can ask GPT-3 to generate a new file structure based on natural language instructions. While we have tried different representations, the most simple and effective so far is a tree-like representation of the file structure.
 
-For example, imagine that you have a project in a folder called `playground` with the following structure:
+For example, imagine you have a project in a folder called `playground` with the following structure:
 
 ```
 playground/
@@ -30,7 +26,7 @@ playground/
 └── example.tsx
 ```
 
-And you want to add a new file called `hello.tsx` in the same folder, you can do it with the following command:
+To add a new file called `hello.tsx` to the same folder, you can use the following command:
 
 ```bash
 blob do "add a new file called hello.tsx"
@@ -45,13 +41,13 @@ playground/
 └── hello.tsx
 ```
 
-Or, if you want bootstrap a new entire project with nextjs and typescript, you can do it with the following command:
+Or, if you want to bootstrap a new Next.js project with TypeScript, you can do so with the following command:
 
 ```bash
 blob do "bootstrap a new nextjs project"
 ```
 
-The result will be:
+This will result in the following file structure:
 
 ```
 nextjs-starter/
@@ -76,13 +72,13 @@ nextjs-starter/
 └── tsconfig.json
 ```
 
-And if you want to put your `pages` folder into your `src` folder, you can do it with the following command:
+To move the pages folder into the src folder, use the following command:
 
 ```bash
 blob do "move the pages folder into the src folder"
 ```
 
-Resulting in:
+This will result in the following file structure:
 
 ```
 nextjs-starter/
@@ -109,15 +105,15 @@ nextjs-starter/
 
 ## Usage
 
-The way to use is invoking the `blob` command with the name of the project you want to create, for example:
+You only need use the `blob` binary to interact with your project. You can use the `--help` flag to see all the available commands.
 
 ```bash
-blob create my-project
+blob --help
 ```
 
-This will create a directory called `my-project` with its own context used as input for GPT-3 engine throw OpenAI API.
+By default, the current directory is assumed as the context, but you can use the `--path`(`-p`) flag to specify a different directory.
 
-With your new project, you can invoke the `blob do` and a instruction in natural language indicating a feature or an action you want to do, for example:
+To perform a specific action or feature, you can use the `blob do` command followed by a natural language instruction. For example:
 
 ```bash
 blob do "bootstrap a new nextjs project"
@@ -130,7 +126,3 @@ blob do "add some basic components for a design system"
 ```bash
 blob do "add a new page to the project and put a big hello world in the center of this page"
 ```
-
-### Acknowledgements
-
-Actually I use some code from [https://github.com/jacwah/oak](Oak) project to parse the file structure into tree-like. In the future I document this part better.
