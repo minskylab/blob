@@ -26,8 +26,8 @@ async fn main() {
     let project_path = cli.path.unwrap_or(".".to_string());
 
     match &cli.command {
-        Commands::Init { path, instruction } => {
-            println!("Applying edits to {}", path.clone().unwrap());
+        Commands::Init { name } => {
+            println!("Applying edits to {}", name.clone().unwrap());
         }
 
         Commands::Do { instruction } => {
@@ -62,8 +62,9 @@ async fn main() {
                 println!("Mutation cancelled");
             }
         }
-        Commands::Context { path, instruction } => {
-            println!("Applying edits to {}", path.clone().unwrap());
+        Commands::Define { definition } => {
+            context_processor
+                .save_new_definition(project_path.clone(), definition.clone().unwrap());
         }
     }
 }

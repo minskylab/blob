@@ -7,13 +7,11 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.0.26", features = ["derive"] }
-glob = "0.3.0"
 reqwest = { version = "0.11", features = ["json"] }
 serde_json = "1.0.88"
 tokio = { version = "1", features = ["full"] }
 serde_derive = "1.0.149"
 serde = "1.0.149"
 git2 = "0.15.0"
-globset = "0.4.9"
-chrono = "0.4.23"
+chrono = { version = "0.4.23", features = ["serde"] }
 dotenv = "0.15.0"

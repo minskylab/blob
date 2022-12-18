@@ -16,23 +16,15 @@ pub enum Commands {
     /// Init a new blob project (only a context for your edits)
     Init {
         #[arg(short, long)]
-        path: Option<String>,
-
-        #[arg(short, long)]
-        instruction: Option<String>,
+        name: Option<String>,
     },
 
     /// Do an edit on a blob project through the OpenAI Codex API
     Do {
-        // #[arg(short, long)]
         instruction: Option<String>,
     },
 
-    Context {
-        #[arg(short, long)]
-        path: Option<String>,
-
-        #[arg(short, long)]
-        instruction: Option<String>,
+    Define {
+        definition: Option<String>,
     },
 }

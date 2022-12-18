@@ -1,3 +1,9 @@
+use chrono::serde::ts_seconds_option;
+use serde_derive::Deserialize;
+use serde_derive::Serialize;
+
+use std::fs;
+use std::fs::OpenOptions;
 use std::os::unix::fs::PermissionsExt;
 use std::{
     fs::{create_dir_all, File},
@@ -96,13 +102,59 @@ use std::{
 //     // }
 // }
 
+use chrono::{DateTime, Utc};
+
 use crate::transformer::mutation::ProjectMutationScripted;
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BlobDefinition {
+    #[serde(with = "ts_seconds_option")]
+    pub created_at: Option<DateTime<Utc>>,
+    pub definition: String,
+}
 
 pub struct BlobContextProcessor {}
 
 impl BlobContextProcessor {
     pub fn new() -> Self {
         Self {}
+    }
+
+    fn get_definitions_path(&self, root_path: String) -> String {
+        format!("{root_path}/.blob/.definitions")
+    }
+
+    fn get_mutations_path(&self, root_path: String) -> String {
+        format!("{root_path}/.blob/.mutations")
+    }
+
+    pub fn save_new_definition(&self, root_path: String, definition: String) -> BlobDefinition {
+        let definitions_root = self.get_definitions_path(root_path.clone());
+
+        fs::create_dir_all(definitions_root.clone()).unwrap();
+
+        let file_path = format!("{}/{}", definitions_root, "user_definitions.md".to_string());
+        // let mut file = File::create().unwrap();
+
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .append(true)
+            .open(file_path)
+            .unwrap();
+
+        let def = BlobDefinition {
+            created_at: Some(Utc::now()),
+            definition,
+        };
+
+        let definition = serde_json::to_string(&def.clone()).unwrap();
+        let formatted_definition = format!("{}\n", definition);
+
+        file.write_all(formatted_definition.as_bytes()).unwrap();
+
+        def
     }
 
     pub fn save_new_context(&self, project_scripted_mutation: ProjectMutationScripted) -> String {
@@ -115,7 +167,8 @@ impl BlobContextProcessor {
             .format("%Y%m%d%H%M%S")
             .to_string();
 
-        let new_context_path = format!("{root}/.blob/{timed_name}");
+        let mutations_path = self.get_mutations_path(root.clone());
+        let new_context_path = format!("{mutations_path}/{timed_name}");
         // save project_scripted_mutation.bash_script to file called script.sh
         create_dir_all(new_context_path.clone()).unwrap();
 
