@@ -1,17 +1,16 @@
 use std::process::Command;
 
 use blob::blob::BlobContextProcessor;
+use blob::cli::{BlobTool, Commands};
 use clap::Parser;
 use dotenv::dotenv;
 use llm_engine::performer::LLMEngine;
-use tool::tool::{BlobTool, Commands};
 use transformer::mutation::ProjectMutationDraft;
 
 mod blob;
 mod codex;
 mod llm_engine;
 mod representation;
-mod tool;
 mod transformer;
 
 #[tokio::main]
