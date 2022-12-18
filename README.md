@@ -4,15 +4,17 @@
   <img width="460" src="assets/blob.png">
 </p>
 
+> Self-reference is all you need
+
 ## Definition
 
 Blob is a powerful tool that uses language large models (LLMs) to assist in the creation and maintenance of software projects. It is designed to provide a more intuitive and efficient way to work with source code, enabling developers to focus on their ideas and logic rather than the technicalities of programming. Blob is still in the experimental phase and may not yet be able to handle large-scale projects, but we are actively working on improving its capabilities and scalability.
 
 Currently, Blob utilizes OpenAI's GPT-3 as its underlying engine, but we are also exploring the integration of other open source technologies through the use of adapters. Our ultimate goal is to make Blob a versatile and adaptable tool that can be used in a wide range of projects and environments.
 
-## Warning
+## ⚠️ Warning
 
-This tool is under construction and is not ready for production use. However, you are welcome to try it out if you wish. Our next steps are to improve the documentation and release binaries.
+Please note that Blob is currently under development and is not yet suitable for production use. While you are welcome to try it out and provide feedback, we caution that it may have an incomplete implementation and may not function as intended. Our top priorities at this time are to improve the documentation and release stable binaries. Please check back with us for updates on the progress of these efforts.
 
 ## Main Idea
 
