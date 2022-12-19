@@ -1,7 +1,7 @@
 use std::process::Command;
 
 use blob::context::BlobContextProcessor;
-use blob::mutation::{ProjectMutationDraft, SourceFileMutationDraft};
+use blob::mutation::{ProjectMutationDraft, SourceFileMutation, SourceFileMutationDraft};
 use clap::Parser;
 use cli::tool::{BlobTool, Commands};
 use dotenv::dotenv;
@@ -13,8 +13,45 @@ mod codex;
 mod llm_engine;
 mod representation;
 
-#[tokio::main]
+fn ask_for_confirmation() -> bool {
+    println!("Do you want to apply this mutation? (y/N):");
 
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).unwrap();
+
+    match input.trim() {
+        "y" | "yes" => true,
+        _ => false,
+    }
+}
+
+fn apply_source_file_mutation(
+    mutation_folder_path: String,
+    source_file_mutation: SourceFileMutation,
+) {
+    let res = Command::new("cp")
+        .arg("-r")
+        .arg(mutation_folder_path)
+        .arg(source_file_mutation.parent.file_path)
+        .output()
+        .unwrap();
+
+    let output = String::from_utf8_lossy(&res.stdout);
+
+    println!("{}", output);
+}
+
+fn apply_mutation_script(mutation_script_path: String) {
+    let res = Command::new("bash")
+        .arg(mutation_script_path)
+        .output()
+        .unwrap();
+    let output = String::from_utf8_lossy(&res.stdout);
+
+    println!("{}", output);
+}
+
+#[tokio::main]
 async fn main() {
     dotenv().ok();
 
@@ -40,24 +77,15 @@ async fn main() {
 
                 println!("Mutation saved into {mutation_folder_path}");
 
-                println!("Do you want to apply this mutation? (y/N):");
-
-                let mut input = String::new();
-                std::io::stdin().read_line(&mut input).unwrap();
-
-                match input.trim() {
-                    "y" | "yes" => {
-                        let res = Command::new("mv")
-                            .arg(mutation_folder_path)
-                            .arg(source_file_mutation.parent.file_path)
-                            .output()
-                            .unwrap();
-
-                        let output = String::from_utf8_lossy(&res.stdout);
-
-                        println!("{}", output);
+                match ask_for_confirmation() {
+                    true => {
+                        println!(
+                            "Updated source file to {}",
+                            source_file_mutation.clone().parent.file_path
+                        );
+                        apply_source_file_mutation(mutation_folder_path, source_file_mutation)
                     }
-                    _ => println!("Mutation discarded."),
+                    false => println!("Mutation discarded."),
                 }
             }
             None => {
@@ -84,21 +112,12 @@ async fn main() {
 
                 println!("Script saved into {script_path}");
 
-                println!("Do you want to apply this mutation? (y/N):");
-
-                let mut input = String::new();
-                std::io::stdin().read_line(&mut input).unwrap();
-
-                match input.trim() {
-                    "y" | "yes" => {
+                match ask_for_confirmation() {
+                    true => {
                         println!("Applying edits to {}", project_root_path.clone());
-
-                        let res = Command::new("bash").arg(script_path).output().unwrap();
-                        let output = String::from_utf8_lossy(&res.stdout);
-
-                        println!("{}", output);
+                        apply_mutation_script(script_path);
                     }
-                    _ => println!("Mutation discarded."),
+                    false => println!("Mutation discarded."),
                 }
             }
         },
