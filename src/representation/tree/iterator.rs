@@ -5,7 +5,7 @@ use std::iter::Peekable;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
-use crate::representation::filters::FileFilter;
+use crate::representation::tree::filters::FileFilter;
 
 #[derive(Debug)]
 pub enum Event {

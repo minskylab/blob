@@ -1,13 +1,14 @@
 use std::process::Command;
 
-use blob::cli::{BlobTool, Commands};
 use blob::context::BlobContextProcessor;
 use blob::mutation::{ProjectMutationDraft, SourceFileMutationDraft};
 use clap::Parser;
+use cli::tool::{BlobTool, Commands};
 use dotenv::dotenv;
 use llm_engine::performer::LLMEngine;
 
 mod blob;
+mod cli;
 mod codex;
 mod llm_engine;
 mod representation;

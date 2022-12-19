@@ -4,7 +4,7 @@ use serde_derive::Serialize;
 use std::{path::Path, process::Command};
 
 use crate::representation::{
-    filters::{FilterAggregate, GitignoreFilter},
+    tree::filters::{FilterAggregate, GitignoreFilter},
     tree::iterator::TreeIter,
 };
 
