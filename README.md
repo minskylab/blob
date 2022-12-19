@@ -113,6 +113,8 @@ You only need use the `blob` binary to interact with your project. You can use t
 blob --help
 ```
 
+Also, you need to set the `OPENAI_API_KEY` environment variable to your OpenAI API key. You can get one [here](https://beta.openai.com/). You can use an `.env` file to set this variable or set it directly in your shell.
+
 By default, the current directory is assumed as the context, but you can use the `--path`(`-p`) flag to specify a different directory.
 
 To perform a specific action or feature, you can use the `blob do` command followed by a natural language instruction. For example:
