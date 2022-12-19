@@ -107,17 +107,17 @@ nextjs-starter/
 
 ## Usage
 
-You only need use the `blob` binary to interact with your project. You can use the `--help` flag to see all the available commands.
+To interact with your Blob project, you can use the blob binary. You can see all the available commands by using the --help flag:
 
 ```bash
 blob --help
 ```
 
-Also, you need to set the `OPENAI_API_KEY` environment variable to your OpenAI API key. You can get one [here](https://beta.openai.com/). You can use an `.env` file to set this variable or set it directly in your shell.
+Before you can use Blob, you will need to set the OPENAI_API_KEY environment variable to your OpenAI API key. You can get one here. You can set this variable using an .env file or directly in your shell.
 
-By default, the current directory is assumed as the context, but you can use the `--path`(`-p`) flag to specify a different directory.
+By default, the current directory is assumed as the context for Blob, but you can specify a different directory using the `--path` (or `-p`) flag.
 
-To perform a specific action or feature, you can use the `blob do` command followed by a natural language instruction. For example:
+To perform a specific action or feature, you can use the blob do command followed by a natural language instruction. For example:
 
 ```bash
 blob do "bootstrap a new nextjs project"
@@ -130,3 +130,61 @@ blob do "add some basic components for a design system"
 ```bash
 blob do "add a new page to the project and put a big hello world in the center of this page"
 ```
+
+```bash
+# Example provided by ChatGPT
+# Set up a new React project with Create React App
+blob do "bootstrap a new React project using Create React App"
+```
+
+```bash
+# Example provided by ChatGPT
+blob do "add a new component called Button to the project"
+```
+
+```bash
+# Example provided by ChatGPT
+blob do "update the layout of the header component to use a fixed position at the top of the page"
+```
+
+```bash
+# Example provided by ChatGPT
+blob do "remove the unused component called Footer from the project"
+```
+
+These examples show how you can use the `do` command to perform a wide range of actions on your project, from setting up new projects and adding components to modifying and deleting existing elements.
+
+To help improve the quality of the model's predictions, you can use the `define` command to provide definitions for terms related to your project. Simply type define followed by the definition, this sentence will be used as the self project definition. For example:
+
+```bash
+blob define "this project is a nextjs starter with typescript, tailwindcss, trpc, and chakra-ui"
+```
+
+```bash
+# Example provided by ChatGPT
+blob define "this project is an online platform for booking fitness classes"
+```
+
+```bash
+# Example provided by ChatGPT
+blob define "this project is a social media app for connecting with friends and family"
+```
+
+```bash
+# Example provided by ChatGPT
+blob define "this project is an ecommerce website for selling handmade crafts"
+```
+
+```bash
+# Example provided by ChatGPT
+blob define "this project is a mobile game about matching colors and shapes"
+```
+
+```bash
+# Example provided by ChatGPT
+blob define "this project is a news website for aggregating and curating articles from multiple sources"
+```
+
+<!-- You can use the `define` command as many times as needed to add definitions for different terms in your project. These definitions will be used by the model to better understand the context and requirements of your instructions when using the do command. -->
+
+Using the `define` command in this way allows you to provide a concise, self-contained definition of your project that can be used by the model to better understand the context and requirements of your instructions when using the `do` command. You can use the `define` command as many times as needed to add definitions for different terms or concepts in your project.

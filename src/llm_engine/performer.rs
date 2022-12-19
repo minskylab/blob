@@ -1,10 +1,11 @@
+use crate::blob::mutation::{
+    ProjectMutation, ProjectMutationDraft, ProjectMutationExtended, SourceFileMutation,
+    SourceFileMutationDraft,
+};
 use crate::codex::processor::CodexProcessor;
 use crate::representation::{
     tree::iterator::{TreeIter, TreeProcessor},
     tree::representation::TreeRepresentation,
-};
-use crate::transformer::mutation::{
-    ProjectMutationDraft, ProjectMutationExtended, ProjectMutationScripted,
 };
 
 pub struct LLMEngine {
@@ -33,7 +34,7 @@ impl LLMEngine {
         let mut root_tree = mutation_draft.tree_iter();
         let context = self.generate_context(root_tree.as_mut());
 
-        let prompt = mutation_draft.prompt();
+        let prompt = mutation_draft.prompt.clone();
 
         let edit = self
             .codex_processor
@@ -49,10 +50,10 @@ impl LLMEngine {
         ))
     }
 
-    pub async fn generate_bash_script(
+    pub async fn generate_project_mutation(
         &mut self,
         mutation_draft: Box<ProjectMutationDraft>,
-    ) -> ProjectMutationScripted {
+    ) -> ProjectMutation {
         let snapshot = self.generate_structure_proposal(mutation_draft).await;
 
         let next_prompt = snapshot.clone().generate_prompt().unwrap();
@@ -68,6 +69,33 @@ impl LLMEngine {
 
         let full_script = format!("{}{}", next_prompt, predicted_commands);
 
-        ProjectMutationScripted::new_from_parent(snapshot.clone(), predicted_commands, full_script)
+        ProjectMutation::new_from_parent(snapshot.clone(), predicted_commands, full_script)
+    }
+
+    pub async fn transform_specific_file(
+        &mut self,
+        mutation_draft: Box<SourceFileMutationDraft>,
+    ) -> SourceFileMutation {
+        // let mut root_tree = mutation_draft.tree_iter();
+        // let context = self.generate_context(root_tree.as_mut());
+
+        let prompt = mutation_draft.prompt.clone();
+        // mutation_draft.
+        // let file_path = format!("{}/{}", project_path.clone(), file.clone());
+        let file_content = std::fs::read_to_string(mutation_draft.file_path.clone()).unwrap();
+
+        let edit = self
+            .codex_processor
+            .clone()
+            .edit_call(file_content.clone(), prompt)
+            .await
+            .unwrap();
+        // self.generate_bash_script(Box::new(mutation_draft)).await
+
+        SourceFileMutation::new_from_parent(
+            mutation_draft,
+            file_content,
+            edit.choices.first().unwrap().text.clone(),
+        )
     }
 }

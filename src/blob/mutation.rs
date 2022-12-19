@@ -1,4 +1,6 @@
 use chrono::{DateTime, Utc};
+use serde_derive::Deserialize;
+use serde_derive::Serialize;
 use std::{path::Path, process::Command};
 
 use crate::representation::{
@@ -9,8 +11,7 @@ use crate::representation::{
 #[derive(Clone, Debug)]
 pub struct MutationError(String);
 
-#[derive(Clone, Debug)]
-
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectMutationDraft {
     pub path_root: String,
     pub prompt: String,
@@ -20,8 +21,7 @@ pub struct ProjectMutationDraft {
     // tree_iter: Option<Box<TreeIter>>,
 }
 
-#[derive(Clone, Debug)]
-
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectMutationExtended {
     pub parent: Box<ProjectMutationDraft>,
     current_structure: String,
@@ -29,14 +29,27 @@ pub struct ProjectMutationExtended {
     // state: MutationState,
 }
 
-#[derive(Clone, Debug)]
-pub struct ProjectMutationScripted {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectMutation {
     pub parent: Box<ProjectMutationExtended>,
     pub predicted_commands: String,
     pub full_script: String,
 }
 
-// #[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SourceFileMutationDraft {
+    pub file_path: String,
+    pub prompt: String,
+
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SourceFileMutation {
+    pub parent: Box<SourceFileMutationDraft>,
+    pub current_content: String,
+    pub proposed_content: String,
+}
 
 impl ProjectMutationDraft {
     pub fn new(path_root: String, prompt: String, context_lines: Vec<String>) -> Self {
@@ -45,7 +58,6 @@ impl ProjectMutationDraft {
             prompt,
             context_lines: Some(context_lines),
             created_at: Utc::now(),
-            // tree_iter: None,
         }
     }
 
@@ -63,10 +75,6 @@ impl ProjectMutationDraft {
 
     pub fn tree_iter(&mut self) -> Box<TreeIter> {
         self.calculate_tree_iter()
-    }
-
-    pub fn prompt(&self) -> &str {
-        &self.prompt
     }
 }
 
@@ -135,7 +143,7 @@ cd {}
     }
 }
 
-impl ProjectMutationScripted {
+impl ProjectMutation {
     pub fn new_from_parent(
         parent: Box<ProjectMutationExtended>,
         predicted_commands: String,
@@ -145,6 +153,30 @@ impl ProjectMutationScripted {
             parent,
             predicted_commands,
             full_script,
+        }
+    }
+}
+
+impl SourceFileMutationDraft {
+    pub fn new(file_path: String, prompt: String) -> Self {
+        SourceFileMutationDraft {
+            file_path,
+            prompt,
+            created_at: Utc::now(),
+        }
+    }
+}
+
+impl SourceFileMutation {
+    pub fn new_from_parent(
+        parent: Box<SourceFileMutationDraft>,
+        current_content: String,
+        proposed_content: String,
+    ) -> Self {
+        Self {
+            parent,
+            current_content,
+            proposed_content,
         }
     }
 }
