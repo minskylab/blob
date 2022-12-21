@@ -188,3 +188,7 @@ blob define "this project is a news website for aggregating and curating article
 <!-- You can use the `define` command as many times as needed to add definitions for different terms in your project. These definitions will be used by the model to better understand the context and requirements of your instructions when using the do command. -->
 
 Using the `define` command in this way allows you to provide a concise, self-contained definition of your project that can be used by the model to better understand the context and requirements of your instructions when using the `do` command. You can use the `define` command as many times as needed to add definitions for different terms or concepts in your project.
+
+```bash
+sudo cp target/release/blob /usr/local/bin/
+```

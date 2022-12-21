@@ -49,13 +49,15 @@ pub struct BlobContextProcessor {
 }
 
 pub enum BlobDefinitionKind {
-    User,
+    Project,
+    SelfReference,
     // Meta,
 }
 impl BlobDefinitionKind {
     fn as_filename(&self) -> &'static str {
         match self {
-            BlobDefinitionKind::User => "user.md",
+            BlobDefinitionKind::Project => "_project.md",
+            BlobDefinitionKind::SelfReference => "_self.md",
             // BlobDefinitionKind::Meta => "meta.md",
         }
     }
@@ -63,7 +65,18 @@ impl BlobDefinitionKind {
 
 impl BlobContextProcessor {
     pub fn new(project_path: String) -> Self {
-        Self { project_path }
+        let ctx = Self { project_path };
+
+        ctx.save_definitions(BlobDefinitionKind::SelfReference, false, vec![
+            "blob is a cli tool to modify the source code with natural language instructions".to_string(),
+            "blob uses OpenAI GPT-3 to understand the instructions and execute the mutations in form of unix instructions or file editing".to_string(),
+            "blob have two commands: `blob do` an `blob define`".to_string(),
+            "`blob do \"YOUR_INSTRUCTION\"` is used to execute a mutation over the entire project file structure".to_string(),
+            "`blob do -f <file> \"YOUR_INSTRUCTION\"` is used to execute a mutation over specific file".to_string(),
+            "`blob define \"YOUR_DEFINITION\"` is used to define a concept and improve the context for blob".to_string(),
+        ]);
+
+        ctx
     }
 
     fn get_definitions_path(&self) -> String {
@@ -97,42 +110,6 @@ impl BlobContextProcessor {
         let mutations_path = self.get_mutations_path();
 
         format!("{mutations_path}/{context_name}")
-    }
-
-    pub fn save_project_definition(
-        &self,
-        kind: BlobDefinitionKind,
-        definition: String,
-    ) -> BlobDefinition {
-        let definitions_root = self.get_definitions_path();
-
-        create_dir_all(definitions_root.clone()).unwrap();
-
-        let file_path = format!("{}/{}", definitions_root, kind.as_filename().to_string());
-        // let mut file = File::create().unwrap();
-
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create(true)
-            .append(true)
-            .open(file_path)
-            .unwrap();
-
-        let now = Utc::now();
-
-        let def = BlobDefinition {
-            created_at: now,
-            definition: definition.clone(),
-        };
-
-        let new_line_definition = format!("{}, {}\n", now.to_rfc3339(), definition);
-
-        // let definition = serde_json::to_string(&new_line_definition.clone()).unwrap();
-        // let formatted_definition = format!("{}\n", definition);
-
-        file.write_all(new_line_definition.as_bytes()).unwrap();
-
-        def
     }
 
     pub fn save_project_mutation(&self, project_mutation: ProjectMutation) -> String {
@@ -228,6 +205,42 @@ impl BlobContextProcessor {
         mutated_source_file_path.to_string()
     }
 
+    // pub fn save_project_definition(
+    //     &self,
+    //     kind: BlobDefinitionKind,
+    //     definition: String,
+    // ) -> BlobDefinition {
+    //     let definitions_root = self.get_definitions_path();
+
+    //     create_dir_all(definitions_root.clone()).unwrap();
+
+    //     let file_path = format!("{}/{}", definitions_root, kind.as_filename().to_string());
+    //     // let mut file = File::create().unwrap();
+
+    //     let mut file = OpenOptions::new()
+    //         .write(true)
+    //         .create(true)
+    //         .append(true)
+    //         .open(file_path)
+    //         .unwrap();
+
+    //     let now = Utc::now();
+
+    //     let def = BlobDefinition {
+    //         created_at: now,
+    //         definition: definition.clone(),
+    //     };
+
+    //     let new_line_definition = format!("{}, {}\n", now.to_rfc3339(), definition);
+
+    //     // let definition = serde_json::to_string(&new_line_definition.clone()).unwrap();
+    //     // let formatted_definition = format!("{}\n", definition);
+
+    //     file.write_all(new_line_definition.as_bytes()).unwrap();
+
+    //     def
+    // }
+
     pub fn retrieve_definitions(&self, kind: BlobDefinitionKind) -> Vec<BlobDefinition> {
         let definitions_root = self.get_definitions_path();
         let file_path = format!("{}/{}", definitions_root, kind.as_filename().to_string());
@@ -264,5 +277,50 @@ impl BlobContextProcessor {
         }
 
         definitions
+    }
+
+    fn save_definitions(
+        &self,
+        kind: BlobDefinitionKind,
+        append: bool,
+        definitions: Vec<String>,
+    ) -> Vec<BlobDefinition> {
+        let definitions_root = self.get_definitions_path();
+
+        create_dir_all(definitions_root.clone()).unwrap();
+
+        let file_path = format!("{}/{}", definitions_root, kind.as_filename().to_string());
+        // let mut file = File::create().unwrap();
+
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .append(append)
+            .open(file_path)
+            .unwrap();
+
+        let now = Utc::now();
+
+        let mut final_definitions: Vec<BlobDefinition> = Vec::new();
+
+        for definition in definitions {
+            let def = BlobDefinition {
+                created_at: now,
+                definition: definition.clone(),
+            };
+
+            let new_line_definition =
+                format!("{}, {}\n", def.created_at.to_rfc3339(), def.definition);
+
+            file.write_all(new_line_definition.as_bytes()).unwrap();
+
+            final_definitions.push(def);
+        }
+
+        final_definitions
+    }
+
+    pub fn save_project_definitions(&self, definitions: Vec<String>) -> Vec<BlobDefinition> {
+        self.save_definitions(BlobDefinitionKind::Project, true, definitions)
     }
 }

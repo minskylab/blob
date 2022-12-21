@@ -5,7 +5,7 @@ use blob::mutation::{ProjectMutationDraft, SourceFileMutation, SourceFileMutatio
 use clap::Parser;
 use cli::tool::{BlobTool, Commands};
 use dotenv::dotenv;
-use llm_engine::performer::LLMEngine;
+use llm_engine::engine::LLMEngine;
 
 mod blob;
 mod cli;
@@ -63,7 +63,11 @@ async fn main() {
     let context_processor = BlobContextProcessor::new(project_root_path.clone());
 
     match &cli.command {
-        Commands::Do { instruction, file } => match file {
+        Commands::Do {
+            instruction,
+            file,
+            yes: _,
+        } => match file {
             Some(file) => {
                 let mutation_draft = Box::new(SourceFileMutationDraft::new(
                     file.clone(),
@@ -89,10 +93,18 @@ async fn main() {
                 }
             }
             None => {
-                let defs =
-                    context_processor.retrieve_definitions(blob::context::BlobDefinitionKind::User);
+                let mut definitions = context_processor
+                    .retrieve_definitions(blob::context::BlobDefinitionKind::Project);
 
-                let context_lines = defs.iter().map(|def| def.definition.clone()).collect();
+                let mut self_definitions = context_processor
+                    .retrieve_definitions(blob::context::BlobDefinitionKind::SelfReference);
+
+                definitions.append(&mut self_definitions);
+
+                let context_lines = definitions
+                    .iter()
+                    .map(|def| def.definition.clone())
+                    .collect();
 
                 let mutation = ProjectMutationDraft::new(
                     project_root_path.clone(),
@@ -112,6 +124,7 @@ async fn main() {
 
                 println!("Script saved into {script_path}");
 
+                // match yes.unwrap_or(ask_for_confirmation()) {
                 match ask_for_confirmation() {
                     true => {
                         println!("Applying edits to {}", project_root_path.clone());
@@ -122,10 +135,7 @@ async fn main() {
             }
         },
         Commands::Define { definition } => {
-            context_processor.save_project_definition(
-                blob::context::BlobDefinitionKind::User,
-                definition.clone().unwrap(),
-            );
+            context_processor.save_project_definitions(vec![definition.clone().unwrap()]);
         }
     }
 }
