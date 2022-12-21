@@ -5,12 +5,12 @@ use blob::mutation::{ProjectMutationDraft, SourceFileMutation, SourceFileMutatio
 use clap::Parser;
 use cli::tool::{BlobTool, Commands};
 use dotenv::dotenv;
-use llm_engine::engine::LLMEngine;
+use llm::engine::LLMEngine;
 
 mod blob;
 mod cli;
 mod codex;
-mod llm_engine;
+mod llm;
 mod representation;
 
 fn ask_for_confirmation() -> bool {

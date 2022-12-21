@@ -1,5 +1,5 @@
 use crate::blob::mutation::{
-    ProjectMutation, ProjectMutationDraft, ProjectMutationExtended, SourceFileMutation,
+    ProjectMutation, ProjectMutationDraft, ProjectMutationProposed, SourceFileMutation,
     SourceFileMutationDraft,
 };
 use crate::codex::processor::CodexProcessor;
@@ -30,7 +30,7 @@ impl LLMEngine {
     pub async fn generate_structure_proposal(
         &mut self,
         mut mutation_draft: Box<ProjectMutationDraft>,
-    ) -> Box<ProjectMutationExtended> {
+    ) -> Box<ProjectMutationProposed> {
         let mut root_tree = mutation_draft.tree_iter();
         let context = self.generate_context(root_tree.as_mut());
 
@@ -43,7 +43,7 @@ impl LLMEngine {
             .await
             .unwrap();
 
-        Box::new(ProjectMutationExtended::new_from_parent(
+        Box::new(ProjectMutationProposed::new_from_parent(
             mutation_draft,
             context.clone(),
             edit.choices.first().unwrap().text.clone(),

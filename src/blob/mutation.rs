@@ -22,7 +22,7 @@ pub struct ProjectMutationDraft {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ProjectMutationExtended {
+pub struct ProjectMutationProposed {
     pub parent: Box<ProjectMutationDraft>,
     current_structure: String,
     proposed_structure: String,
@@ -31,7 +31,7 @@ pub struct ProjectMutationExtended {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProjectMutation {
-    pub parent: Box<ProjectMutationExtended>,
+    pub parent: Box<ProjectMutationProposed>,
     pub predicted_commands: String,
     pub full_script: String,
 }
@@ -78,7 +78,7 @@ impl ProjectMutationDraft {
     }
 }
 
-impl ProjectMutationExtended {
+impl ProjectMutationProposed {
     pub fn new_from_parent(
         parent: Box<ProjectMutationDraft>,
         current_structure: String,
@@ -145,7 +145,7 @@ cd {}
 
 impl ProjectMutation {
     pub fn new_from_parent(
-        parent: Box<ProjectMutationExtended>,
+        parent: Box<ProjectMutationProposed>,
         predicted_commands: String,
         full_script: String,
     ) -> Self {
