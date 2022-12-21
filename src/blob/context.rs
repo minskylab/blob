@@ -195,51 +195,9 @@ impl BlobContextProcessor {
         let metadata_json = serde_json::to_string(&metadata).unwrap();
 
         metadata_file.write_all(metadata_json.as_bytes()).unwrap();
-        // create_dir_all(directories_onlydd.clone()).unwrap();
 
-        // let mutations_path = self.get_mutations_path(self.project_path.clone());
-        // let new_context_path = format!("{mutations_path}/{context_name}");
-
-        // source_file_mutation.parent.file_path.clone()
-        // self.get_mutations_path()
         mutated_source_file_path.to_string()
     }
-
-    // pub fn save_project_definition(
-    //     &self,
-    //     kind: BlobDefinitionKind,
-    //     definition: String,
-    // ) -> BlobDefinition {
-    //     let definitions_root = self.get_definitions_path();
-
-    //     create_dir_all(definitions_root.clone()).unwrap();
-
-    //     let file_path = format!("{}/{}", definitions_root, kind.as_filename().to_string());
-    //     // let mut file = File::create().unwrap();
-
-    //     let mut file = OpenOptions::new()
-    //         .write(true)
-    //         .create(true)
-    //         .append(true)
-    //         .open(file_path)
-    //         .unwrap();
-
-    //     let now = Utc::now();
-
-    //     let def = BlobDefinition {
-    //         created_at: now,
-    //         definition: definition.clone(),
-    //     };
-
-    //     let new_line_definition = format!("{}, {}\n", now.to_rfc3339(), definition);
-
-    //     // let definition = serde_json::to_string(&new_line_definition.clone()).unwrap();
-    //     // let formatted_definition = format!("{}\n", definition);
-
-    //     file.write_all(new_line_definition.as_bytes()).unwrap();
-
-    //     def
-    // }
 
     pub fn retrieve_definitions(&self, kind: BlobDefinitionKind) -> Vec<BlobDefinition> {
         let definitions_root = self.get_definitions_path();
