@@ -103,27 +103,28 @@ impl ProjectMutationProposed {
         Ok(format!(
             "#!/bin/bash
 
-# Context:
+# Project Context:
 # {}
 
 # Current structure:
 # {}
 # {}
 
-# Desire prompt:
+# User prompt:
 # {}
 
-# Proposed structure:
+# Expected structure:
 # {}
 # {}
 
+# Local Context:
 # `pwd` 
 # {}
 
 # `ls`
 # {}
 
-# Unix commands to perform this transformation:
+# Unix commands to perform transformation:
 cd {}
 ",
             context_definitions.trim_end().replace("\n", "\n# "),

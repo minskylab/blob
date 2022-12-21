@@ -93,13 +93,13 @@ async fn main() {
                 }
             }
             None => {
-                let mut definitions = context_processor
+                let definitions = context_processor
                     .retrieve_definitions(blob::context::BlobDefinitionKind::Project);
 
-                let mut self_definitions = context_processor
-                    .retrieve_definitions(blob::context::BlobDefinitionKind::SelfReference);
+                // let mut self_definitions = context_processor
+                //     .retrieve_definitions(blob::context::BlobDefinitionKind::SelfReference);
 
-                definitions.append(&mut self_definitions);
+                // definitions.append(&mut self_definitions);
 
                 let context_lines = definitions
                     .iter()
