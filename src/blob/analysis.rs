@@ -14,6 +14,20 @@ pub struct ProjectAnalysisDraft {
     // pub structure: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectSourceFileAnalysis {
+    pub file_path: String,
+    pub prompt: String,
+    pub analysis: String,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectAnalysisResult {
+    pub parent: Box<ProjectAnalysisDraft>,
+    pub source_files: Vec<ProjectSourceFileAnalysis>,
+}
+
 impl ProjectAnalysisDraft {
     pub fn new(path_root: String, prompt: String) -> Self {
         ProjectAnalysisDraft { path_root, prompt }

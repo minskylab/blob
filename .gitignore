@@ -1,4 +1,6 @@
 /target
 _blobs
 .env
-.blob
+# .blob
+.definitions
+.mutations

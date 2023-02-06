@@ -2,7 +2,9 @@ use std::borrow::BorrowMut;
 use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 
-use crate::blob::analysis::ProjectAnalysisDraft;
+use crate::blob::analysis::{
+    ProjectAnalysisDraft, ProjectAnalysisResult, ProjectSourceFileAnalysis,
+};
 use crate::blob::mutation::{
     ProjectMutation, ProjectMutationDraft, ProjectMutationProposed, SourceFileMutation,
     SourceFileMutationDraft,
@@ -110,13 +112,13 @@ impl LLMEngine {
 
     pub async fn generate_recursive_analysis(
         &mut self,
-        mut analysis: ProjectAnalysisDraft,
+        mut project_analysis_draft: Box<ProjectAnalysisDraft>,
         //
-    ) -> () {
-        let iter = analysis.tree_iter();
+    ) -> ProjectAnalysisResult {
+        let iter = project_analysis_draft.tree_iter();
         // let iter = a;
 
-        let prompt = analysis.prompt;
+        let prompt = project_analysis_draft.prompt.clone();
         // let report = TreeFileWalker::new(move |f| {
         //     println!("File: {}", f.display());
 
@@ -140,7 +142,7 @@ impl LLMEngine {
 
                             let file_content = read_to_string(f.path()).unwrap_or("".to_string());
 
-                            let max_char = 100_000;
+                            let max_char = 10_000;
 
                             let upper = if max_char > file_content.len() {
                                 file_content.len()
@@ -184,17 +186,38 @@ impl LLMEngine {
 
         // .collect();
 
+        let mut source_code_analysis: Vec<ProjectSourceFileAnalysis> = Vec::new();
+
         for (file_name, prompt) in prompts {
-            let completion = self
+            let completion_response = self
                 .codex_processor
                 .clone()
                 .completions_call(prompt.clone(), Some(vec!["#".to_string()]))
-                .await
-                .unwrap();
+                .await;
 
-            let interpretation = completion.choices.first().unwrap().text.clone();
+            let (interpretation, error) = match completion_response.as_ref() {
+                Ok(completion) => (completion.choices.first().unwrap().text.trim(), None),
+                Err(e) => {
+                    println!("Error: {}", e);
+                    ("", Some(e.to_string()))
+                }
+            };
 
-            println!("{:?}:\n{}", file_name, interpretation);
+            let file_path = file_name
+                .clone()
+                .unwrap()
+                .as_path()
+                .to_string_lossy()
+                .to_string();
+
+            println!("{}:\n{}", file_path, interpretation);
+
+            source_code_analysis.push(ProjectSourceFileAnalysis {
+                file_path,
+                prompt: prompt.clone(),
+                analysis: interpretation.to_string(),
+                error,
+            })
 
             // let full_script = format!("{}{}", prompt, predicted_commands);
 
@@ -206,6 +229,11 @@ impl LLMEngine {
             //     file_content,
             //     predicted_commands,
             // ));
+        }
+
+        ProjectAnalysisResult {
+            parent: project_analysis_draft,
+            source_files: source_code_analysis,
         }
         // let results = prompts
         //     .iter()

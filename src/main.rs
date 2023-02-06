@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::Write;
 use std::process::Command;
 
 use blob::analysis::ProjectAnalysisDraft;
@@ -152,20 +154,39 @@ async fn main() {
             let analysis = ProjectAnalysisDraft::new(
                 project_root_path.clone(),
                 "Please generate a comprehensive, detailed, and specific summary of the following code snippet. Your summary should include the following information:
-                
-                1. Purpose of the code: what does the code do, what problem does it solve, and what is its intended effect in the context of the overall system or business logic? Provide an overview of the code's main function and any notable behavior.
-                2. Programming constructs used: what programming language is the code written in, and what specific constructs are used (e.g. functions, classes, loops, conditionals, etc.)? Describe the syntax, purpose, and behavior of the constructs used.
-                3. Algorithms or data structures employed: does the code use any specific algorithms or data structures (e.g. sorting algorithms, tree structures, etc.)? If so, explain what they are and how they are used in the code. Discuss the time and space complexity of any algorithms used.
-                4. Business logic inferred from the code: what can you infer about the business logic or system the code is a part of based on the code itself? Provide examples of the inputs, outputs, and processing of the code that support your inference.
-                5. Notable features or challenges: are there any interesting or challenging aspects of the code that you would like to highlight? This can include efficiency, scalability, maintainability, edge cases, etc.
-                ".to_string(),
-                // file.clone().unwrap(),
-                // definitions,
+
+1. Purpose of the code: what does the code do, what problem does it solve, and what is its intended effect in the context of the overall system or business logic? Provide an overview of the code's main function and any notable behavior.
+2. Programming constructs used: what programming language is the code written in, and what specific constructs are used (e.g. functions, classes, loops, conditionals, etc.)? Describe the syntax, purpose, and behavior of the constructs used.
+3. Algorithms or data structures employed: does the code use any specific algorithms or data structures (e.g. sorting algorithms, tree structures, etc.)? If so, explain what they are and how they are used in the code. Discuss the time and space complexity of any algorithms used.
+4. Business logic inferred from the code: what can you infer about the business logic or system the code is a part of based on the code itself? Provide examples of the inputs, outputs, and processing of the code that support your inference.
+5. Notable features or challenges: are there any interesting or challenging aspects of the code that you would like to highlight? This can include efficiency, scalability, maintainability, edge cases, etc.
+
+Please generate your response using the minimum number of tokens necessary to effectively convey the information requested. 
+".to_string(),
             );
 
-            engine.generate_recursive_analysis(analysis.clone()).await;
+            let result = engine
+                .generate_recursive_analysis(Box::new(analysis.clone()))
+                .await;
 
-            println!("Analysis: {:#?}", analysis);
+            // println!("Analysis: {:#?}", analysis);
+            let document: Vec<String> = result
+                .source_files
+                .iter()
+                .filter(|source| source.error.is_none())
+                .map(|source| {
+                    format!(
+                        "## {}\n### Definition\n{}",
+                        source.file_path, source.analysis
+                    )
+                })
+                .collect();
+
+            let document_content = document.join("\n\n");
+
+            // save document content to file
+            let mut file = File::create("analysis_full.md").unwrap();
+            file.write_all(document_content.as_bytes()).unwrap();
         }
     }
 }

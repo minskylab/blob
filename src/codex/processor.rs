@@ -1,5 +1,6 @@
-use reqwest::{header::HeaderMap, Client, Error};
-use serde_json::json;
+use anyhow::{anyhow, Result};
+use reqwest::{header::HeaderMap, Client};
+use serde_json::{from_str, json};
 
 use super::codex_responses::{CompletionResponse, EditResponse};
 
@@ -25,7 +26,7 @@ impl CodexProcessor {
         self: Self,
         input: impl Into<String>,
         instruction: impl Into<String>,
-    ) -> Result<EditResponse, Error> {
+    ) -> Result<EditResponse> {
         let endpoint = String::from(CODEX_EDIT_API);
 
         let mut headers = HeaderMap::new();
@@ -64,7 +65,7 @@ impl CodexProcessor {
         self: Self,
         prompt: impl Into<String>,
         stop_words: Option<Vec<String>>,
-    ) -> Result<CompletionResponse, Error> {
+    ) -> Result<CompletionResponse> {
         let endpoint = String::from(CODEX_COMPLETION_API);
 
         let mut headers = HeaderMap::new();
@@ -97,7 +98,14 @@ impl CodexProcessor {
             .send()
             .await?;
 
-        let data = response.json::<CompletionResponse>().await?;
+        let response_text = response.text().await.unwrap();
+
+        let Ok(data) = from_str::<CompletionResponse>(&response_text) else {
+            // let response_text = response_text;
+            return Err(anyhow!(response_text));
+
+        };
+
         Ok(data)
     }
 }
