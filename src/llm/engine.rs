@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 
@@ -11,7 +10,6 @@ use crate::blob::mutation::{
 };
 use crate::codex::processor::CodexProcessor;
 use crate::representation::tree::iterator::Event;
-use crate::representation::tree::reader::TreeFileWalker;
 use crate::representation::{
     tree::iterator::{TreeIter, TreeProcessor},
     tree::representation::TreeRepresentation,
