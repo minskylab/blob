@@ -29,4 +29,7 @@ pub enum Commands {
 
     /// Give a definition related to the project, util to increase the quality of the model predictions.
     Define { definition: Option<String> },
+
+    /// Analyze the project and give a report.
+    Analyze { file: Option<String> },
 }

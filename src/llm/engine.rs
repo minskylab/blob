@@ -1,8 +1,15 @@
+use std::borrow::BorrowMut;
+use std::fs::read_to_string;
+use std::path::{Path, PathBuf};
+
+use crate::blob::analysis::ProjectAnalysisDraft;
 use crate::blob::mutation::{
     ProjectMutation, ProjectMutationDraft, ProjectMutationProposed, SourceFileMutation,
     SourceFileMutationDraft,
 };
 use crate::codex::processor::CodexProcessor;
+use crate::representation::tree::iterator::Event;
+use crate::representation::tree::reader::TreeFileWalker;
 use crate::representation::{
     tree::iterator::{TreeIter, TreeProcessor},
     tree::representation::TreeRepresentation,
@@ -10,6 +17,7 @@ use crate::representation::{
 
 pub struct LLMEngine {
     llm_representation: TreeRepresentation,
+    // walker: TreeFileWalker,
     codex_processor: CodexProcessor,
 }
 
@@ -19,6 +27,7 @@ impl LLMEngine {
 
         LLMEngine {
             llm_representation: TreeRepresentation::new(),
+            // walker: ,
             codex_processor: CodexProcessor::new(access_token),
         }
     }
@@ -61,7 +70,7 @@ impl LLMEngine {
         let completion = self
             .codex_processor
             .clone()
-            .completions_call(next_prompt.clone())
+            .completions_call(next_prompt.clone(), None)
             .await
             .unwrap();
 
@@ -97,5 +106,149 @@ impl LLMEngine {
             file_content,
             edit.choices.first().unwrap().text.clone(),
         )
+    }
+
+    pub async fn generate_recursive_analysis(
+        &mut self,
+        mut analysis: ProjectAnalysisDraft,
+        //
+    ) -> () {
+        let iter = analysis.tree_iter();
+        // let iter = a;
+
+        let prompt = analysis.prompt;
+        // let report = TreeFileWalker::new(move |f| {
+        //     println!("File: {}", f.display());
+
+        //     // read entire file
+        //     let file_content = read_to_string(f).unwrap();
+
+        //     // format!("{} {}", file_content, prompt);
+        //     // self.generate_prompt_for_analysis(&analysis, file_content);
+        // })
+        // .construct(&mut iter);
+
+        // Vec<(Option<PathBuf>, String)>
+        let prompts: Vec<(Option<PathBuf>, String)> = iter
+            .map(|event| -> (Option<PathBuf>, String) {
+                match event {
+                    Ok(event) => match event {
+                        Event::File(f) => {
+                            let path = f.path().to_path_buf();
+
+                            println!("File: {}", f.path().display());
+
+                            let file_content = read_to_string(f.path()).unwrap_or("".to_string());
+
+                            let max_char = 100_000;
+
+                            let upper = if max_char > file_content.len() {
+                                file_content.len()
+                            } else {
+                                max_char
+                            };
+
+                            (
+                                Some(path),
+                                format!(
+                                    "
+                                # {}
+                                ```
+                                {}
+                                ```
+
+                                {}:
+
+                                ",
+                                    f.path().display(),
+                                    file_content.get(..upper).unwrap(),
+                                    prompt
+                                ), // format!("{} {}", file_content.get(..upper).unwrap(), prompt),
+                            )
+                        }
+                        _ => (None, "".to_string()),
+                    },
+                    Err(e) => {
+                        println!("Error: {}", e);
+                        (None, "".to_string())
+                    }
+                }
+
+                // read entire file
+
+                // format!("{} {}", file_content, prompt);
+                // self.generate_prompt_for_analysis(&analysis, file_content);
+            })
+            .filter(|el| if el.0 == None { false } else { true })
+            .collect();
+
+        // .collect();
+
+        for (file_name, prompt) in prompts {
+            let completion = self
+                .codex_processor
+                .clone()
+                .completions_call(prompt.clone(), Some(vec!["#".to_string()]))
+                .await
+                .unwrap();
+
+            let interpretation = completion.choices.first().unwrap().text.clone();
+
+            println!("{:?}:\n{}", file_name, interpretation);
+
+            // let full_script = format!("{}{}", prompt, predicted_commands);
+
+            // let file_path = format!("{}/{}", analysis.project_path.clone(), file_name.unwrap());
+            // let file_content = std::fs::read_to_string(file_path).unwrap();
+
+            // analysis.mutations.push(SourceFileMutation::new_from_parent(
+            //     SourceFileMutationDraft::new(file_path, prompt),
+            //     file_content,
+            //     predicted_commands,
+            // ));
+        }
+        // let results = prompts
+        //     .iter()
+        //     .map(|(file_name, prompt)| async {
+        //         let completion = self
+        //             .codex_processor
+        //             .clone()
+        //             .completions_call(prompt.clone(), Some(vec!["#".to_string()]))
+        //             .await
+        //             .unwrap();
+
+        //         // let predicted_commands = edit.choices.first().unwrap().text.clone();
+
+        //         // let full_script = format!("{}{}", prompt, predicted_commands);
+
+        //         // (file_name.unwrap(), predicted_commands, full_script, prompt)
+
+        //         completion.choices.first().unwrap().text.clone()
+        //     })
+        //     .collect();
+
+        // println!("Prompts: {:?}", prompts);
+
+        // let file_path = format!("{}/{}", project_path.clone(), file.clone());
+        // let file_content = std::fs::read_to_string(file_path.clone()).unwrap();
+
+        // let edit = self
+        //     .codex_processor
+        //     .clone()
+        //     .edit_call(file_content.clone(), "".to_string())
+        //     .await
+        //     .unwrap();
+
+        // let predicted_commands = edit.choices.first().unwrap().text.clone();
+
+        // let full_script = format!("{}{}", file_content, predicted_commands);
+
+        // ProjectMutation::new_from_parent(
+        //     project_path,
+        //     file,
+        //     file_content,
+        //     predicted_commands,
+        //     full_script,
+        // )
     }
 }

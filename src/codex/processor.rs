@@ -63,6 +63,7 @@ impl CodexProcessor {
     pub async fn completions_call(
         self: Self,
         prompt: impl Into<String>,
+        stop_words: Option<Vec<String>>,
     ) -> Result<CompletionResponse, Error> {
         let endpoint = String::from(CODEX_COMPLETION_API);
 
@@ -83,8 +84,9 @@ impl CodexProcessor {
                 {
                     "model": "text-davinci-003",
                     "prompt": prompt.into(),
-                    "max_tokens": 256,
+                    "max_tokens": 1000,
                     "temperature": 0.2,
+                    "stop": stop_words,
                     // "top_p": 1,
                     // "n": 1,
                     // "stream": false,

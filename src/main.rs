@@ -1,5 +1,6 @@
 use std::process::Command;
 
+use blob::analysis::ProjectAnalysisDraft;
 use blob::context::BlobContextProcessor;
 use blob::mutation::{ProjectMutationDraft, SourceFileMutation, SourceFileMutationDraft};
 use clap::Parser;
@@ -136,6 +137,35 @@ async fn main() {
         },
         Commands::Define { definition } => {
             context_processor.save_project_definitions(vec![definition.clone().unwrap()]);
+        }
+        Commands::Analyze { file } => {
+            // let definitions =
+            //     context_processor.retrieve_definitions(blob::context::BlobDefinitionKind::Project);
+
+            // let context_lines = definitions
+            //     .iter()
+            //     .map(|def| def.definition.clone())
+            //     .collect();
+
+            // let analysis = engine.analyze_project(context_lines).await;
+
+            let analysis = ProjectAnalysisDraft::new(
+                project_root_path.clone(),
+                "Please generate a comprehensive, detailed, and specific summary of the following code snippet. Your summary should include the following information:
+                
+                1. Purpose of the code: what does the code do, what problem does it solve, and what is its intended effect in the context of the overall system or business logic? Provide an overview of the code's main function and any notable behavior.
+                2. Programming constructs used: what programming language is the code written in, and what specific constructs are used (e.g. functions, classes, loops, conditionals, etc.)? Describe the syntax, purpose, and behavior of the constructs used.
+                3. Algorithms or data structures employed: does the code use any specific algorithms or data structures (e.g. sorting algorithms, tree structures, etc.)? If so, explain what they are and how they are used in the code. Discuss the time and space complexity of any algorithms used.
+                4. Business logic inferred from the code: what can you infer about the business logic or system the code is a part of based on the code itself? Provide examples of the inputs, outputs, and processing of the code that support your inference.
+                5. Notable features or challenges: are there any interesting or challenging aspects of the code that you would like to highlight? This can include efficiency, scalability, maintainability, edge cases, etc.
+                ".to_string(),
+                // file.clone().unwrap(),
+                // definitions,
+            );
+
+            engine.generate_recursive_analysis(analysis.clone()).await;
+
+            println!("Analysis: {:#?}", analysis);
         }
     }
 }
