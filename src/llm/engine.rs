@@ -1,5 +1,5 @@
 use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::blob::analysis::{
     ProjectAnalysisDraft, ProjectAnalysisResult, ProjectSourceFileAnalysis,
@@ -114,21 +114,9 @@ impl LLMEngine {
         //
     ) -> ProjectAnalysisResult {
         let iter = project_analysis_draft.tree_iter();
-        // let iter = a;
 
         let prompt = project_analysis_draft.prompt.clone();
-        // let report = TreeFileWalker::new(move |f| {
-        //     println!("File: {}", f.display());
 
-        //     // read entire file
-        //     let file_content = read_to_string(f).unwrap();
-
-        //     // format!("{} {}", file_content, prompt);
-        //     // self.generate_prompt_for_analysis(&analysis, file_content);
-        // })
-        // .construct(&mut iter);
-
-        // Vec<(Option<PathBuf>, String)>
         let prompts: Vec<(Option<PathBuf>, String)> = iter
             .map(|event| -> (Option<PathBuf>, String) {
                 match event {
@@ -194,10 +182,13 @@ impl LLMEngine {
                 .await;
 
             let (interpretation, error) = match completion_response.as_ref() {
-                Ok(completion) => (completion.choices.first().unwrap().text.trim(), None),
+                Ok(completion) => (
+                    Some(completion.choices.first().unwrap().text.trim().to_string()),
+                    None,
+                ),
                 Err(e) => {
                     println!("Error: {}", e);
-                    ("", Some(e.to_string()))
+                    (None, Some(e.to_string()))
                 }
             };
 
@@ -208,73 +199,17 @@ impl LLMEngine {
                 .to_string_lossy()
                 .to_string();
 
-            println!("{}:\n{}", file_path, interpretation);
-
             source_code_analysis.push(ProjectSourceFileAnalysis {
                 file_path,
                 prompt: prompt.clone(),
-                analysis: interpretation.to_string(),
+                result: interpretation,
                 error,
             })
-
-            // let full_script = format!("{}{}", prompt, predicted_commands);
-
-            // let file_path = format!("{}/{}", analysis.project_path.clone(), file_name.unwrap());
-            // let file_content = std::fs::read_to_string(file_path).unwrap();
-
-            // analysis.mutations.push(SourceFileMutation::new_from_parent(
-            //     SourceFileMutationDraft::new(file_path, prompt),
-            //     file_content,
-            //     predicted_commands,
-            // ));
         }
 
         ProjectAnalysisResult {
             parent: project_analysis_draft,
             source_files: source_code_analysis,
         }
-        // let results = prompts
-        //     .iter()
-        //     .map(|(file_name, prompt)| async {
-        //         let completion = self
-        //             .codex_processor
-        //             .clone()
-        //             .completions_call(prompt.clone(), Some(vec!["#".to_string()]))
-        //             .await
-        //             .unwrap();
-
-        //         // let predicted_commands = edit.choices.first().unwrap().text.clone();
-
-        //         // let full_script = format!("{}{}", prompt, predicted_commands);
-
-        //         // (file_name.unwrap(), predicted_commands, full_script, prompt)
-
-        //         completion.choices.first().unwrap().text.clone()
-        //     })
-        //     .collect();
-
-        // println!("Prompts: {:?}", prompts);
-
-        // let file_path = format!("{}/{}", project_path.clone(), file.clone());
-        // let file_content = std::fs::read_to_string(file_path.clone()).unwrap();
-
-        // let edit = self
-        //     .codex_processor
-        //     .clone()
-        //     .edit_call(file_content.clone(), "".to_string())
-        //     .await
-        //     .unwrap();
-
-        // let predicted_commands = edit.choices.first().unwrap().text.clone();
-
-        // let full_script = format!("{}{}", file_content, predicted_commands);
-
-        // ProjectMutation::new_from_parent(
-        //     project_path,
-        //     file,
-        //     file_content,
-        //     predicted_commands,
-        //     full_script,
-        // )
     }
 }

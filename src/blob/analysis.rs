@@ -18,7 +18,7 @@ pub struct ProjectAnalysisDraft {
 pub struct ProjectSourceFileAnalysis {
     pub file_path: String,
     pub prompt: String,
-    pub analysis: String,
+    pub result: Option<String>,
     pub error: Option<String>,
 }
 
@@ -43,23 +43,17 @@ impl ProjectAnalysisDraft {
 5. Notable features or challenges: are there any interesting or challenging aspects of the code that you would like to highlight? This can include efficiency, scalability, maintainability, edge cases, etc.
 
 In your summary, please explicitly state any assumptions or contextual information necessary to understand the code and its behavior within the larger system. Additionally, use appropriate references to any external dependencies, data sources, or other related code snippets as needed.
-        ".to_string(),
-    }
+".to_string(),
+        }
     }
 
-    fn calculate_tree_iter(&mut self) -> Box<TreeIter> {
+    pub fn tree_iter(&mut self) -> Box<TreeIter> {
         let mut filters = FilterAggregate::default();
-
         let root = Path::new(&self.path_root).to_owned();
-
         let github_filter = GitignoreFilter::new(root.clone()).unwrap().unwrap();
 
         filters.push(github_filter);
 
         Box::new(TreeIter::new(root, filters).unwrap())
-    }
-
-    pub fn tree_iter(&mut self) -> Box<TreeIter> {
-        self.calculate_tree_iter()
     }
 }

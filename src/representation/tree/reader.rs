@@ -1,14 +1,49 @@
-use std::path::Path;
+use futures::{stream, Stream, StreamExt};
+use std::path::{Path, PathBuf};
+use tokio::{
+    fs::{self, DirEntry},
+    io,
+}; // 0.3.1
 
 use super::iterator::{Entry, TreeProcessor};
 
-pub type TreeVisitWalkerFunction = fn(&Path);
+pub type TreeVisitWalkerFunction = fn(path: &Path, is_dir: bool);
 
 pub struct TreeFileWalker {
     dir_has_next: Vec<bool>,
     num_dirs: usize,
     num_files: usize,
     visitor: TreeVisitWalkerFunction,
+}
+
+pub async fn visit_file_path(
+    path: impl Into<PathBuf>,
+) -> impl Stream<Item = io::Result<DirEntry>> + Send + 'static {
+    async fn one_level(path: PathBuf, to_visit: &mut Vec<PathBuf>) -> io::Result<Vec<DirEntry>> {
+        let mut dir = fs::read_dir(path).await?;
+        let mut files = Vec::new();
+
+        while let Some(child) = dir.next_entry().await? {
+            if child.metadata().await?.is_dir() {
+                to_visit.push(child.path());
+            } else {
+                files.push(child)
+            }
+        }
+
+        Ok(files)
+    }
+
+    stream::unfold(vec![path.into()], |mut to_visit| async {
+        let path = to_visit.pop()?;
+        let file_stream = match one_level(path, &mut to_visit).await {
+            Ok(files) => stream::iter(files).map(Ok).left_stream(),
+            Err(e) => stream::once(async { Err(e) }).right_stream(),
+        };
+
+        Some((file_stream, to_visit))
+    })
+    .flatten()
 }
 
 impl TreeFileWalker {
@@ -28,7 +63,6 @@ impl TreeProcessor for TreeFileWalker {
         self.dir_has_next.push(entry.has_next_sibling());
 
         // Print the relative path to the root dir
-        let mut dir = String::new();
 
         // if self.dir_has_next.is_empty() {
         //     dir.push_str(&self.construct_entry(&entry.path().display()));
@@ -39,7 +73,9 @@ impl TreeProcessor for TreeFileWalker {
         self.dir_has_next.push(true);
         self.num_dirs += 1;
 
-        dir
+        (self.visitor)(entry.path(), true);
+
+        entry.path().display().to_string()
     }
 
     fn close_dir(&mut self) {
@@ -55,7 +91,7 @@ impl TreeProcessor for TreeFileWalker {
         // let file = self.construct_entry(&file_name_from_path().to_string());
         self.num_files += 1;
 
-        (self.visitor)(entry.path());
+        (self.visitor)(entry.path(), false);
 
         entry.path().display().to_string()
     }

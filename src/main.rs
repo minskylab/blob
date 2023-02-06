@@ -165,7 +165,8 @@ async fn main() {
                 .map(|source| {
                     format!(
                         "## {}\n### Definition\n{}",
-                        source.file_path, source.analysis
+                        source.file_path,
+                        source.result.as_ref().unwrap()
                     )
                 })
                 .collect();
