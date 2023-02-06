@@ -77,13 +77,15 @@ impl CodexProcessor {
 
         headers.insert("Content-Type", "application/json".parse().unwrap());
 
+        let model_name = "text-davinci-003"; // "code-davinci-002"; // "text-davinci-003"
+
         let response = self
             .http_client
             .post(&endpoint)
             .headers(headers)
             .json(&json! {
                 {
-                    "model": "text-davinci-003",
+                    "model": model_name,
                     "prompt": prompt.into(),
                     "max_tokens": 1000,
                     "temperature": 0.2,
