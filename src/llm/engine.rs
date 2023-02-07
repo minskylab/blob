@@ -9,6 +9,7 @@ use crate::blob::mutation::{
     SourceFileMutationDraft,
 };
 use crate::codex::processor::CodexProcessor;
+use crate::llm::templates::interpretation_prompt_template;
 use crate::representation::tree::iterator::Event;
 use crate::representation::{
     tree::iterator::{TreeIter, TreeProcessor},
@@ -121,6 +122,11 @@ impl LLMEngine {
             .map(|event| -> (Option<PathBuf>, String) {
                 match event {
                     Ok(event) => match event {
+                        Event::OpenDir(dir) => {
+                            println!("Dir: {}", dir.path().display());
+
+                            (None, "".to_string())
+                        }
                         Event::File(f) => {
                             let path = f.path().to_path_buf();
 
@@ -136,23 +142,13 @@ impl LLMEngine {
                                 max_char
                             };
 
-                            (
-                                Some(path),
-                                format!(
-                                    "
-                                # {}
-                                ```
-                                {}
-                                ```
+                            let final_prompt = interpretation_prompt_template(
+                                f.path(),
+                                file_content.get(..upper).unwrap().to_string(),
+                                prompt.clone(),
+                            );
 
-                                {}:
-
-                                ",
-                                    f.path().display(),
-                                    file_content.get(..upper).unwrap(),
-                                    prompt
-                                ), // format!("{} {}", file_content.get(..upper).unwrap(), prompt),
-                            )
+                            (Some(path), final_prompt) // format!("{} {}", file_content.get(..upper).unwrap(), prompt),
                         }
                         _ => (None, "".to_string()),
                     },
@@ -161,16 +157,9 @@ impl LLMEngine {
                         (None, "".to_string())
                     }
                 }
-
-                // read entire file
-
-                // format!("{} {}", file_content, prompt);
-                // self.generate_prompt_for_analysis(&analysis, file_content);
             })
             .filter(|el| if el.0 == None { false } else { true })
             .collect();
-
-        // .collect();
 
         let mut source_code_analysis: Vec<ProjectSourceFileAnalysis> = Vec::new();
 

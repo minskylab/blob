@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Write;
+use std::path::PathBuf;
 use std::process::Command;
 
 use blob::analysis::ProjectAnalysisDraft;
@@ -9,12 +10,14 @@ use clap::Parser;
 use cli::tool::{BlobTool, Commands};
 use dotenv::dotenv;
 use llm::engine::LLMEngine;
+use structure::software::Project;
 
 mod blob;
 mod cli;
 mod codex;
 mod llm;
 mod representation;
+pub mod structure;
 
 fn ask_for_confirmation() -> bool {
     println!("Do you want to apply this mutation? (y/N):");
@@ -151,6 +154,19 @@ async fn main() {
 
             // let analysis = engine.analyze_project(context_lines).await;
 
+            // let mut software_project = Project::new(PathBuf::from(project_root_path));
+
+            // let data = software_project
+            //     .calculate_source(move |atom| {
+            //         // println!("Atom: {:?}", atom);
+            //         "".to_string()
+            //     })
+            //     .await;
+
+            // data
+            // data.iter().flatten();
+
+            // println!("Data: {:?}", data);
             let analysis = ProjectAnalysisDraft::new_with_default_prompt(project_root_path.clone());
 
             let result = engine
