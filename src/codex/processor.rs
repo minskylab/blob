@@ -83,6 +83,9 @@ impl CodexProcessor {
 
         headers.insert("Content-Type", "application/json".parse().unwrap());
 
+        let model_name = "text-chat-davinci-002-20221122";
+        // let model_name = "text-davinci-003"; // "code-davinci-002"; // "text-davinci-003"
+
         let response = self
             .http_client
             .post(&endpoint)

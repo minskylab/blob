@@ -1,7 +1,14 @@
+use std::path::PathBuf;
+use std::process::Command;
+
+use blob::context::BlobContextProcessor;
+use blob::mutation::{ProjectMutationDraft, SourceFileMutation, SourceFileMutationDraft};
 use clap::Parser;
-use llm_engine::performer::LLMEngine;
-use tool::tool::{BlobTool, Commands};
-use transformer::mutation::MutationInit;
+use cli::tool::{BlobTool, Commands};
+use dotenv::dotenv;
+use llm::engine::LLMEngine;
+
+use crate::structure::software::{Project, SourceAtomTyped};
 
 mod blob;
 mod codex;
@@ -38,13 +45,10 @@ async fn main() {
             //                 .await
             //                 .unwrap();
 
-            //             // println!("\n{edit}");
-
-            //             let new_path = format!("_blobs/{}", *path_str);
-            //             let path = Path::new(new_path.as_str());
-            //             let prefix = path.parent().unwrap();
-
-            //             println!("Writing to {:?}", new_path);
+                let context_lines = definitions
+                    .iter()
+                    .map(|def| def.definition.clone())
+                    .collect();
 
             //             std::fs::create_dir_all(prefix).unwrap();
 
@@ -59,6 +63,9 @@ async fn main() {
             //     }
             // }
         }
+        Commands::Analyze { file } => {
+            // let definitions =
+            // context_processor.retrieve_definitions(blob::context::BlobDefinitionKind::Project);
 
         Commands::Do { path, instruction } => {
             // Snapshot::new_full
@@ -70,59 +77,46 @@ async fn main() {
                 instruction.clone().unwrap(),
             ));
 
-            let generated_script = engine
-                .generate_transformer(mutation, instruction.clone().unwrap())
-                .await;
-            // let path_str = path.as_ref().unwrap();
-            // let root = Path::new(path_str).to_owned();
+            let mut software_project = Project::new(PathBuf::from(project_root_path));
 
-            // let github_filter = GitignoreFilter::new(root.clone()).unwrap().unwrap();
+            let data = software_project
+                .calculate_source(move |atom| {
+                    // println!("Atom: {:?}", atom);
 
-            // filters.push(github_filter);
+                    "".to_string()
+                })
+                .await
+                .iter()
+                .map(|a| match a {
+                    SourceAtomTyped::Dir(_, children, _) => children.clone(),
+                    _ => Vec::<SourceAtomTyped<String>>::new(),
+                })
+                .collect::<Vec<Vec<SourceAtomTyped<String>>>>();
 
-            // let mut tree_iter = TreeIter::new(root, filters).unwrap();
+            println!("Data: {:?}", data);
 
-            // let snp = engine
-            //     .generate_proposal(tree_iter.by_ref(), instruction.as_ref().unwrap().clone())
-            //     .await;
+            // let analysis = ProjectAnalysisDraft::new_with_default_prompt(project_root_path.clone());
 
-            // // // let path_root = String::from(root.to_str().unwrap().clone());
+            // let result = engine.generate_recursive_analysis(Box::new(analysis)).await;
 
-            // // // let snp = Snapshot::new(
-            // // //     path_root,
-            // // //     current_structure,
-            // // //     proposed_structure,
-            // // //     instruction.as_ref().unwrap().clone(),
-            // // // );
+            // // println!("Analysis: {:#?}", analysis);
+            // let document_content = result
+            //     .source_files
+            //     .iter()
+            //     .filter(|source| source.error.is_none())
+            //     .map(|source| {
+            //         format!(
+            //             "## {}\n### Definition\n{}",
+            //             source.file_path,
+            //             source.result.as_ref().unwrap()
+            //         )
+            //     })
+            //     .collect::<Vec<String>>()
+            //     .join("\n\n");
 
-            // let bash_guide = snp.generate_prompt().unwrap();
-
-            // // println!("{bash_guide}");
-
-            // mutation.generate_proposal(&mut engine).await;
-
-            // let b = mutation.generate_prompt().unwrap();
-
-            // let completed_bash = mutation.extend_with_llm(&mut engine).await;
-
-            // let b = completed_bash.unwrap();
-
-            println!("{generated_script}");
-
-            // snp.
-
-            // println!("{current_dir}");
-            // println!("{current_structure}");
-            // println!("{proposed_structure}");
-
-            // println!("Planning edits to {:?}", path);
-
-            // let tree = processor.construct(&mut tree_iter).unwrap();
-
-            // println!("{tree}");
-        }
-        Commands::Context { path, instruction } => {
-            println!("Applying edits to {:?}", path);
+            // // save document content to file
+            // let mut file = File::create("analysis_full.md").unwrap();
+            // file.write_all(document_content.as_bytes()).unwrap();
         }
     }
 }
