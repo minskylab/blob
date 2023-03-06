@@ -2,8 +2,6 @@ use anyhow::{anyhow, Result};
 use reqwest::{header::HeaderMap, Client};
 use serde_json::{from_str, json};
 
-use crate::llm_engine::processor::LLMProcessor;
-
 use super::codex_responses::{CompletionResponse, EditResponse};
 
 static CODEX_EDIT_API: &str = "https://api.openai.com/v1/engines/code-davinci-edit-001/edits";
@@ -24,7 +22,7 @@ impl CodexProcessor {
         }
     }
 
-    pub async fn api_edit_call(
+    pub async fn edit_call(
         self: Self,
         input: impl Into<String>,
         instruction: impl Into<String>,
@@ -63,7 +61,7 @@ impl CodexProcessor {
         // Ok(data["choices"][0]["text"].as_str().unwrap().to_string())
     }
 
-    pub async fn api_completions_call(
+    pub async fn completions_call(
         self: Self,
         prompt: impl Into<String>,
         stop_words: Option<Vec<String>>,
@@ -111,37 +109,5 @@ impl CodexProcessor {
         };
 
         Ok(data)
-    }
-}
-
-#[async_trait]
-impl LLMProcessor for CodexProcessor {
-    async fn edit_call(
-        self: Self,
-        input: impl Into<String>,
-        instruction: impl Into<String>,
-    ) -> dyn Future::Output<Result<String, Error>> + std::marker::Send {
-        let data = self
-            .api_edit_call(input.into(), instruction.into())
-            .await
-            .unwrap();
-
-        future::ready(Ok(data.choices.first().unwrap().text.clone()))
-        // Ok(data.choices.first().unwrap().text.clone())
-        //     .unwrap();
-
-        // Ok(data.choices.first().unwrap().text.clone()).await
-    }
-
-    async fn completions_call(
-        self: Self,
-        prompt: impl Into<String>,
-    ) -> future::Ready<Result<String, Error>> {
-        let data = self
-            .api_completions_call(prompt.into(), None)
-            .await
-            .unwrap();
-
-        Ok(data.choices.first().unwrap().text.clone())
     }
 }

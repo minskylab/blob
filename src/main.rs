@@ -1,16 +1,14 @@
-use std::fs::File;
-use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 
-use blob::analysis::ProjectAnalysisDraft;
 use blob::context::BlobContextProcessor;
 use blob::mutation::{ProjectMutationDraft, SourceFileMutation, SourceFileMutationDraft};
 use clap::Parser;
 use cli::tool::{BlobTool, Commands};
 use dotenv::dotenv;
 use llm::engine::LLMEngine;
-use structure::software::Project;
+
+use crate::structure::software::{Project, SourceAtomTyped};
 
 mod blob;
 mod cli;
@@ -102,11 +100,6 @@ async fn main() {
                 let definitions = context_processor
                     .retrieve_definitions(blob::context::BlobDefinitionKind::Project);
 
-                // let mut self_definitions = context_processor
-                //     .retrieve_definitions(blob::context::BlobDefinitionKind::SelfReference);
-
-                // definitions.append(&mut self_definitions);
-
                 let context_lines = definitions
                     .iter()
                     .map(|def| def.definition.clone())
@@ -145,7 +138,7 @@ async fn main() {
         }
         Commands::Analyze { file } => {
             // let definitions =
-            //     context_processor.retrieve_definitions(blob::context::BlobDefinitionKind::Project);
+            // context_processor.retrieve_definitions(blob::context::BlobDefinitionKind::Project);
 
             // let context_lines = definitions
             //     .iter()
@@ -154,44 +147,46 @@ async fn main() {
 
             // let analysis = engine.analyze_project(context_lines).await;
 
-            // let mut software_project = Project::new(PathBuf::from(project_root_path));
+            let mut software_project = Project::new(PathBuf::from(project_root_path));
 
-            // let data = software_project
-            //     .calculate_source(move |atom| {
-            //         // println!("Atom: {:?}", atom);
-            //         "".to_string()
-            //     })
-            //     .await;
+            let data = software_project
+                .calculate_source(move |atom| {
+                    // println!("Atom: {:?}", atom);
 
-            // data
-            // data.iter().flatten();
-
-            // println!("Data: {:?}", data);
-            let analysis = ProjectAnalysisDraft::new_with_default_prompt(project_root_path.clone());
-
-            let result = engine
-                .generate_recursive_analysis(Box::new(analysis.clone()))
-                .await;
-
-            // println!("Analysis: {:#?}", analysis);
-            let document: Vec<String> = result
-                .source_files
-                .iter()
-                .filter(|source| source.error.is_none())
-                .map(|source| {
-                    format!(
-                        "## {}\n### Definition\n{}",
-                        source.file_path,
-                        source.result.as_ref().unwrap()
-                    )
+                    "".to_string()
                 })
-                .collect();
+                .await
+                .iter()
+                .map(|a| match a {
+                    SourceAtomTyped::Dir(_, children, _) => children.clone(),
+                    _ => Vec::<SourceAtomTyped<String>>::new(),
+                })
+                .collect::<Vec<Vec<SourceAtomTyped<String>>>>();
 
-            let document_content = document.join("\n\n");
+            println!("Data: {:?}", data);
 
-            // save document content to file
-            let mut file = File::create("analysis_full.md").unwrap();
-            file.write_all(document_content.as_bytes()).unwrap();
+            // let analysis = ProjectAnalysisDraft::new_with_default_prompt(project_root_path.clone());
+
+            // let result = engine.generate_recursive_analysis(Box::new(analysis)).await;
+
+            // // println!("Analysis: {:#?}", analysis);
+            // let document_content = result
+            //     .source_files
+            //     .iter()
+            //     .filter(|source| source.error.is_none())
+            //     .map(|source| {
+            //         format!(
+            //             "## {}\n### Definition\n{}",
+            //             source.file_path,
+            //             source.result.as_ref().unwrap()
+            //         )
+            //     })
+            //     .collect::<Vec<String>>()
+            //     .join("\n\n");
+
+            // // save document content to file
+            // let mut file = File::create("analysis_full.md").unwrap();
+            // file.write_all(document_content.as_bytes()).unwrap();
         }
     }
 }
