@@ -1,5 +1,3 @@
-//! Types for recursively walking the file system tree.
-
 use std::error::Error;
 use std::fmt;
 use std::fs;
@@ -7,20 +5,15 @@ use std::iter::Peekable;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
-use super::filters::FileFilter;
+use crate::representation::tree::filters::FileFilter;
 
-/// Events yielded from `TreeIter`.
 #[derive(Debug)]
 pub enum Event {
-    /// Any non-directory file in the current directory.
     File(Entry),
-    /// A directory contained within the current directory. This is the new current directory.
     OpenDir(Entry),
-    /// Signals end of current directory. The parent becomes the new current directory.
     CloseDir,
 }
 
-/// Represents an entry in the file system.
 pub struct Entry {
     path: PathBuf,
     has_next_sibling: bool,
@@ -28,21 +21,13 @@ pub struct Entry {
 }
 
 impl Entry {
-    /// Path to the entry, relative to its root.
     pub fn path(&self) -> &Path {
         self.path.as_path()
     }
 
-    /// Whether the iterator that yielded this entry has more sibling (same directory) entries.
     pub fn has_next_sibling(&self) -> bool {
         self.has_next_sibling
     }
-
-    // /// A cached metadata entry for this file. It's probably better to use this than
-    // /// calling `fs::metadata` on `path`.
-    // pub fn metadata(&self) -> &fs::Metadata {
-    //     &self.metadata
-    // }
 }
 
 impl fmt::Debug for Entry {
@@ -56,7 +41,6 @@ impl fmt::Debug for Entry {
     }
 }
 
-/// An iterator yielding only the entries in dir where `file_filter` returns true.
 struct FilteredDir {
     file_filter: Rc<dyn FileFilter>,
     dir: fs::ReadDir,
@@ -112,22 +96,17 @@ impl Iterator for FilteredDir {
 pub struct TreeIter {
     dir_stack: Vec<Peekable<FilteredDir>>,
     file_filter: Rc<dyn FileFilter>,
-    root: PathBuf,
 }
 
 impl TreeIter {
     /// Create a new iterator with `path` as root.
     pub fn new<F>(path: PathBuf, file_filter: F) -> Result<Self, Box<dyn Error>>
     where
-        // P: AsRef<Path>,
         F: FileFilter + 'static,
     {
         let rc_filter = Rc::new(file_filter);
-        // let f = Rc::new(path.as_ref().clone());
-        // let boxed_path = Rc::new(path);
 
         let p = path.clone();
-        let p1 = path.clone();
 
         fs::read_dir(p)
             .map(|dir| {
@@ -136,19 +115,12 @@ impl TreeIter {
                     dir,
                 };
 
-                // let p = Rc::new(path.as_ref().clone());
-
                 TreeIter {
                     dir_stack: vec![filtered.peekable()],
                     file_filter: rc_filter,
-                    root: p1,
                 }
             })
             .map_err(From::from)
-    }
-
-    pub fn root(&self) -> &Path {
-        self.root.as_ref()
     }
 }
 
@@ -182,9 +154,9 @@ fn next_entry(dir: &mut Peekable<FilteredDir>) -> Option<Result<Entry, Box<dyn E
     let path = entry.path();
 
     Some(Ok(Entry {
-        path: path,
-        metadata: metadata,
-        has_next_sibling: has_next_sibling,
+        path,
+        metadata,
+        has_next_sibling,
     }))
 }
 
@@ -196,22 +168,17 @@ impl Iterator for TreeIter {
 
         loop {
             match self.dir_stack.as_mut_slice().last_mut() {
-                Some(dir) => {
-                    match next_entry(dir) {
-                        Some(Ok(the_entry)) => {
-                            entry = the_entry;
-                            break;
-                        }
-                        Some(Err(err)) => return Some(Err(err)),
-                        // Top dir is empty, go down a level by falling through
-                        None => {}
+                Some(dir) => match next_entry(dir) {
+                    Some(Ok(the_entry)) => {
+                        entry = the_entry;
+                        break;
                     }
-                }
-                // We reached top of dir stack
+                    Some(Err(err)) => return Some(Err(err)),
+                    None => {}
+                },
                 None => return None,
             };
 
-            // Pop here to avoid multiple mutable references
             self.dir_stack.pop();
             return Some(Ok(Event::CloseDir));
         }
@@ -229,17 +196,6 @@ impl Iterator for TreeIter {
     }
 }
 
-// impl Clone for TreeIter {
-//     fn clone(&self) -> Self {
-//         // let foo = self.dir_stack.();
-//         Self {
-//             dir_stack: Box::new(self.dir_stack),
-//             file_filter: self.file_filter.clone(),
-//             root: self.root.clone(),
-//         }
-//     }
-// }
-/// A generic trait for processing the output of `TreeIter`.
 pub trait TreeProcessor {
     fn close_dir(&mut self);
 

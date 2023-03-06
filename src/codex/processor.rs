@@ -1,11 +1,6 @@
-use std::{
-    future::{self, Future},
-    io,
-};
-
-use async_trait::async_trait;
-use reqwest::{header::HeaderMap, Client, Error};
-use serde_json::json;
+use anyhow::{anyhow, Result};
+use reqwest::{header::HeaderMap, Client};
+use serde_json::{from_str, json};
 
 use crate::llm_engine::processor::LLMProcessor;
 
@@ -33,7 +28,7 @@ impl CodexProcessor {
         self: Self,
         input: impl Into<String>,
         instruction: impl Into<String>,
-    ) -> Result<EditResponse, Error> {
+    ) -> Result<EditResponse> {
         let endpoint = String::from(CODEX_EDIT_API);
 
         let mut headers = HeaderMap::new();
@@ -71,7 +66,8 @@ impl CodexProcessor {
     pub async fn api_completions_call(
         self: Self,
         prompt: impl Into<String>,
-    ) -> Result<CompletionResponse, Error> {
+        stop_words: Option<Vec<String>>,
+    ) -> Result<CompletionResponse> {
         let endpoint = String::from(CODEX_COMPLETION_API);
 
         let mut headers = HeaderMap::new();
@@ -83,8 +79,7 @@ impl CodexProcessor {
 
         headers.insert("Content-Type", "application/json".parse().unwrap());
 
-        let model_name = "text-chat-davinci-002-20221122";
-        // let model_name = "text-davinci-003"; // "code-davinci-002"; // "text-davinci-003"
+        let model_name = "text-davinci-003"; // "code-davinci-002"; // "text-davinci-003"
 
         let response = self
             .http_client
@@ -92,10 +87,11 @@ impl CodexProcessor {
             .headers(headers)
             .json(&json! {
                 {
-                    "model": "text-davinci-003",
+                    "model": model_name,
                     "prompt": prompt.into(),
-                    "max_tokens": 256,
+                    "max_tokens": 1000,
                     "temperature": 0.2,
+                    "stop": stop_words,
                     // "top_p": 1,
                     // "n": 1,
                     // "stream": false,
@@ -106,7 +102,14 @@ impl CodexProcessor {
             .send()
             .await?;
 
-        let data = response.json::<CompletionResponse>().await?;
+        let response_text = response.text().await.unwrap();
+
+        let Ok(data) = from_str::<CompletionResponse>(&response_text) else {
+            // let response_text = response_text;
+            return Err(anyhow!(response_text));
+
+        };
+
         Ok(data)
     }
 }
@@ -134,7 +137,10 @@ impl LLMProcessor for CodexProcessor {
         self: Self,
         prompt: impl Into<String>,
     ) -> future::Ready<Result<String, Error>> {
-        let data = self.api_completions_call(prompt.into()).await.unwrap();
+        let data = self
+            .api_completions_call(prompt.into(), None)
+            .await
+            .unwrap();
 
         Ok(data.choices.first().unwrap().text.clone())
     }

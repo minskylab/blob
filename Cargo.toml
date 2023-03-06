@@ -6,13 +6,14 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = { version = "4.0.26", features = ["derive"] }
-glob = "0.3.0"
-reqwest = { version = "0.11", features = ["json"] }
-serde_json = "1.0.88"
-tokio = { version = "1", features = ["full"] }
-serde_derive = "1.0.149"
-serde = "1.0.149"
-git2 = "0.15.0"
-globset = "0.4.9"
-async-trait = "0.1.59"
+clap = { version = "4.1.4", features = ["derive"] }
+reqwest = { version = "0.11.14", features = ["json"] }
+serde_json = "1.0.92"
+tokio = { version = "1.25.0", features = ["full"] }
+serde_derive = "1.0.152"
+serde = "1.0.152"
+git2 = "0.16.1"
+chrono = { version = "0.4.23", features = ["serde"] }
+dotenv = "0.15.0"
+anyhow = "1.0.69"
+futures = "0.3.26"
