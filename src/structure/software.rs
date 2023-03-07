@@ -3,25 +3,18 @@ use std::path::PathBuf;
 use git2::Repository;
 use tokio::fs;
 
-// #[derive(Clone, Debug)]
-// pub enum SourceAtom {
-//     File(PathBuf),
-//     Dir(PathBuf, Vec<SourceAtom>),
-// }
-
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum SourceAtomTyped<T = ()>
+pub enum SourceAtom<T = ()>
 where
     T: Clone,
 {
     File(PathBuf, T),
-    Dir(PathBuf, Vec<SourceAtomTyped<T>>, T),
+    Dir(PathBuf, Vec<SourceAtom<T>>, T),
 }
 
 pub struct Project {
     pub root_path: PathBuf,
     repository: Repository,
-    // source: Vec<SourceAtom<String>>,
 }
 
 impl Project {
@@ -35,12 +28,10 @@ impl Project {
         }
     }
 
-    pub async fn calculate_source<T>(
-        &mut self,
-        builder: fn(&SourceAtomTyped) -> T,
-    ) -> Vec<SourceAtomTyped<T>>
+    pub async fn calculate_source<T, B>(&mut self, mut builder: B) -> Vec<SourceAtom<T>>
     where
         T: Clone,
+        B: FnMut(&SourceAtom) -> T,
     {
         let mut source = vec![];
         let mut to_visit = vec![self.root_path.clone()];
@@ -67,28 +58,28 @@ impl Project {
                     }
                 }
 
-                let files: Vec<SourceAtomTyped> = files
+                let files: Vec<SourceAtom> = files
                     .into_iter()
                     .map(|file| {
                         // let f = SourceAtom::File(file.path());
-                        SourceAtomTyped::File(file.path(), ())
+                        SourceAtom::File(file.path(), ())
                     })
                     .collect();
 
-                let d = SourceAtomTyped::Dir(path.clone(), files.clone(), ());
-                source.push(SourceAtomTyped::Dir(
+                let d = SourceAtom::Dir(path.clone(), files.clone(), ());
+                source.push(SourceAtom::Dir(
                     path.clone(),
                     files
                         .iter()
                         .map(|atom| match atom {
-                            SourceAtomTyped::File(path, ()) => SourceAtomTyped::File(
+                            SourceAtom::File(path, ()) => SourceAtom::File(
                                 path.clone(),
-                                builder(&SourceAtomTyped::File(path.clone(), ())),
+                                builder(&SourceAtom::File(path.clone(), ())),
                             ),
-                            SourceAtomTyped::Dir(_, _, _) => SourceAtomTyped::Dir(
+                            SourceAtom::Dir(_, _, _) => SourceAtom::Dir(
                                 path.clone(),
                                 vec![],
-                                builder(&SourceAtomTyped::Dir(path.clone(), vec![], ())),
+                                builder(&SourceAtom::Dir(path.clone(), vec![], ())),
                             ),
                         })
                         .collect(),
@@ -96,8 +87,8 @@ impl Project {
                 ));
                 // source.push(SourceAtom::Dir(path, files));
             } else {
-                let f = SourceAtomTyped::File(path.clone(), ());
-                source.push(SourceAtomTyped::File(path.clone(), builder(&f)));
+                let f = SourceAtom::File(path.clone(), ());
+                source.push(SourceAtom::File(path.clone(), builder(&f)));
                 // source.push(SourceAtom::File(path));
             }
         }

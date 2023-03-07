@@ -17,3 +17,4 @@ chrono = { version = "0.4.23", features = ["serde"] }
 dotenv = "0.15.0"
 anyhow = "1.0.69"
 futures = "0.3.26"
+infer = "0.13.0"

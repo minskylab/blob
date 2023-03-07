@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -8,7 +9,7 @@ use cli::tool::{BlobTool, Commands};
 use dotenv::dotenv;
 use llm::engine::LLMEngine;
 
-use crate::structure::software::{Project, SourceAtomTyped};
+use crate::structure::software::{Project, SourceAtom};
 
 mod blob;
 mod cli;
@@ -147,21 +148,52 @@ async fn main() {
 
             // let analysis = engine.analyze_project(context_lines).await;
 
+            let mut source_file_map: Box<HashMap<String, String>> = Box::new(HashMap::new());
+
             let mut software_project = Project::new(PathBuf::from(project_root_path));
 
             let data = software_project
                 .calculate_source(move |atom| {
-                    // println!("Atom: {:?}", atom);
+                    println!("Atom: {:?}", atom);
 
-                    "".to_string()
+                    match atom {
+                        SourceAtom::File(path, _) => {
+                            let content = source_file_map.get(&path.to_str().unwrap().to_string());
+
+                            match content {
+                                Some(content) => content.to_owned(),
+                                None => {
+                                    println!("Reading file: {:?}", path);
+
+                                    let kind = infer::get_from_path(path)
+                                        .unwrap()
+                                        .unwrap()
+                                        .mime_type()
+                                        .to_string();
+                                    // .unwrap()
+                                    // .expect("file read successfully")
+                                    // .expect("file type is known")
+                                    // .to_string();
+
+                                    // let content = std::fs::read_to_string(path).unwrap();
+
+                                    source_file_map
+                                        .insert(path.to_str().unwrap().to_string(), kind.clone());
+
+                                    kind
+                                }
+                            }
+                        }
+                        _ => "".to_string(),
+                    }
                 })
                 .await
                 .iter()
                 .map(|a| match a {
-                    SourceAtomTyped::Dir(_, children, _) => children.clone(),
-                    _ => Vec::<SourceAtomTyped<String>>::new(),
+                    SourceAtom::Dir(_, children, _) => children.clone(),
+                    _ => Vec::<SourceAtom<String>>::new(),
                 })
-                .collect::<Vec<Vec<SourceAtomTyped<String>>>>();
+                .collect::<Vec<Vec<SourceAtom<String>>>>();
 
             println!("Data: {:?}", data);
 
