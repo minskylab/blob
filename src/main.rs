@@ -152,50 +152,63 @@ async fn main() {
 
             let mut software_project = Project::new(PathBuf::from(project_root_path));
 
-            let data = software_project
-                .calculate_source(move |atom| {
-                    println!("Atom: {:?}", atom);
+            let mut data = software_project
+                .calculate_source(move |atom| match atom {
+                    SourceAtom::File(path, _) => {
+                        let content = source_file_map.get(&path.to_str().unwrap().to_string());
 
-                    match atom {
-                        SourceAtom::File(path, _) => {
-                            let content = source_file_map.get(&path.to_str().unwrap().to_string());
+                        match content {
+                            Some(content) => content.to_owned(),
+                            None => {
+                                let kind = infer::get_from_path(path)
+                                    .unwrap()
+                                    .map(|v| v.mime_type().to_string())
+                                    .unwrap_or(
+                                        path.extension()
+                                            .map(|v| {
+                                                format!("text/{}", v.to_str().unwrap().to_string())
+                                            })
+                                            .unwrap_or("unknown/unknown".to_string())
+                                            .to_string(),
+                                    );
 
-                            match content {
-                                Some(content) => content.to_owned(),
-                                None => {
-                                    println!("Reading file: {:?}", path);
+                                source_file_map
+                                    .insert(path.to_str().unwrap().to_string(), kind.clone());
 
-                                    let kind = infer::get_from_path(path)
-                                        .unwrap()
-                                        .unwrap()
-                                        .mime_type()
-                                        .to_string();
-                                    // .unwrap()
-                                    // .expect("file read successfully")
-                                    // .expect("file type is known")
-                                    // .to_string();
-
-                                    // let content = std::fs::read_to_string(path).unwrap();
-
-                                    source_file_map
-                                        .insert(path.to_str().unwrap().to_string(), kind.clone());
-
-                                    kind
-                                }
+                                kind
                             }
                         }
-                        _ => "".to_string(),
                     }
+                    _ => "".to_string(),
                 })
                 .await
                 .iter()
-                .map(|a| match a {
-                    SourceAtom::Dir(_, children, _) => children.clone(),
-                    _ => Vec::<SourceAtom<String>>::new(),
+                .map(|atom| match atom {
+                    SourceAtom::Dir(path, children, _) => Some(BlobProcessedDir {
+                        children: children.clone(),
+                        level: path.to_str().to_owned().unwrap().split("/").count() - 1,
+                        root: path.clone(),
+                    }),
+                    _ => None,
                 })
-                .collect::<Vec<Vec<SourceAtom<String>>>>();
+                .filter(|atom| atom.is_some())
+                .map(|atom| atom.unwrap())
+                .collect::<Vec<BlobProcessedDir<String>>>();
 
-            println!("Data: {:?}", data);
+            data.sort_by(|a, b| a.level.cmp(&b.level));
+            data.reverse();
+
+            for d in data {
+                // println!("{:?}", d);
+                for child in d.children {
+                    match child {
+                        SourceAtom::File(child, kind) => {
+                            println!("Processing {} - {}", child.to_str().unwrap(), kind)
+                        }
+                        _ => println!("Unknown"),
+                    };
+                }
+            }
 
             // let analysis = ProjectAnalysisDraft::new_with_default_prompt(project_root_path.clone());
 
@@ -221,4 +234,15 @@ async fn main() {
             // file.write_all(document_content.as_bytes()).unwrap();
         }
     }
+}
+
+#[derive(Debug)]
+struct BlobProcessedDir<T>
+where
+    T: Clone,
+{
+    // atom: SourceAtom<String>,
+    root: PathBuf,
+    level: usize,
+    children: Vec<SourceAtom<T>>,
 }
