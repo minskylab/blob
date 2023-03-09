@@ -16,10 +16,11 @@ use crate::representation::{
     tree::representation::TreeRepresentation,
 };
 
+#[derive(Debug, Clone)]
 pub struct LLMEngine {
     llm_representation: TreeRepresentation,
     // walker: TreeFileWalker,
-    codex_processor: CodexProcessor,
+    pub codex_processor: CodexProcessor,
 }
 
 impl LLMEngine {

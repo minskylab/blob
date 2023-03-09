@@ -8,7 +8,6 @@ static CODEX_EDIT_API: &str = "https://api.openai.com/v1/engines/code-davinci-ed
 static CODEX_COMPLETION_API: &str = "https://api.openai.com/v1/completions";
 
 #[derive(Debug, Clone)]
-
 pub struct CodexProcessor {
     http_client: Client,
     access_token: String,

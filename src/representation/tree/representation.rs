@@ -4,6 +4,7 @@ use std::path::Path;
 
 use super::iterator::{Entry, TreeProcessor};
 
+#[derive(Debug, Clone)]
 pub struct TreeRepresentation {
     dir_has_next: Vec<bool>,
     num_dirs: usize,
