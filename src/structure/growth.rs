@@ -39,6 +39,7 @@ pub struct ProcessDirResult {
     pub llm_response: String,
     pub dir_path: PathBuf,
     pub processed_files: Vec<ProcessFileResult>,
+    pub hash: String,
 }
 
 impl Growth {
@@ -46,10 +47,7 @@ impl Growth {
         Growth {}
     }
 
-    pub async fn traversal_modules(
-        &mut self,
-        mut software_project: Project,
-    ) -> Vec<BlobProcessedDir<String>> {
+    pub async fn traversal_modules(mut software_project: Project) -> Vec<BlobProcessedDir<String>> {
         let mut source_file_map: Box<HashMap<String, String>> = Box::new(HashMap::new());
 
         let mut data = software_project
@@ -110,7 +108,6 @@ impl Growth {
     }
 
     pub async fn process_file(
-        &self,
         child: PathBuf,
         arc_engine_clone: Arc<LLMEngine>,
     ) -> Result<ProcessFileResult, Error> {
@@ -182,6 +179,23 @@ In your summary, please explicitly state any assumptions or contextual informati
         format!("{:x}", hash_bytes)
     }
 
+    pub async fn calculate_dir_hash(dir: PathBuf) -> String {
+        let mut hasher = Sha256::new();
+
+        let mut files = fs::read_dir(dir).unwrap();
+
+        while let Some(file) = files.next() {
+            let file = file.unwrap();
+            let mut file = fs::File::open(file.path()).unwrap();
+
+            io::copy(&mut file, &mut hasher).unwrap();
+        }
+
+        let hash_bytes = hasher.finalize();
+
+        format!("{:x}", hash_bytes)
+    }
+
     pub async fn process_dir_results(
         dir_path: PathBuf,
         accumulated_results: Vec<ProcessFileResult>,
@@ -225,10 +239,13 @@ files_block,
             }
         };
 
+        let hash = Self::calculate_dir_hash(dir_path.clone()).await;
+
         ProcessDirResult {
             dir_path: dir_path.clone(),
             processed_files: accumulated_results,
             llm_response: interpretation.unwrap(),
+            hash,
         }
     }
 }

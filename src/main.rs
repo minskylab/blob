@@ -158,8 +158,7 @@ async fn main() {
 
             let software_project = Project::new(PathBuf::from(project_root_path));
 
-            let data = Growth::new()
-                .traversal_modules(software_project)
+            let data = Growth::traversal_modules(software_project)
                 .await
                 .to_owned()
                 .into_iter();
@@ -168,7 +167,7 @@ async fn main() {
 
             let workers_number = 4;
 
-            for directory in data.take(2) {
+            for directory in data.take(1) {
                 let wg = WaitGroup::new();
                 let mut file_results = Vec::new();
 
@@ -182,7 +181,7 @@ async fn main() {
                                 println!("Processing {} - {}", child.to_str().unwrap(), kind);
 
                                 let interpretation =
-                                    Growth::new().process_file(child, arc_engine_clone).await;
+                                    Growth::process_file(child, arc_engine_clone).await;
                                 println!("Interpretation: {:?}", interpretation);
 
                                 // file_results.push(interpretation.unwrap());
