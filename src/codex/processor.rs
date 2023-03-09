@@ -104,7 +104,6 @@ impl CodexProcessor {
         let Ok(data) = from_str::<CompletionResponse>(&response_text) else {
             // let response_text = response_text;
             return Err(anyhow!(response_text));
-
         };
 
         Ok(data)

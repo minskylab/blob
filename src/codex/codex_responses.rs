@@ -44,7 +44,7 @@ pub struct CompletionResponse {
 pub struct CompletionChoice {
     pub text: String,
     pub index: i64,
-    // pub logprobs: Value,
+
     #[serde(rename = "finish_reason")]
     pub finish_reason: String,
 }

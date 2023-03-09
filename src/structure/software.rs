@@ -24,7 +24,6 @@ impl Project {
         Project {
             root_path,
             repository,
-            // source: vec![],
         }
     }
 
