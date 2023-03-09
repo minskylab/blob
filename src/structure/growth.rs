@@ -1,4 +1,9 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{
+    collections::HashMap,
+    io::{Error, ErrorKind},
+    path::PathBuf,
+    sync::Arc,
+};
 
 use sha2::{Digest, Sha256};
 use std::{fs, io, io::copy};
@@ -101,7 +106,7 @@ impl Growth {
         &self,
         child: PathBuf,
         arc_engine_clone: Arc<LLMEngine>,
-    ) -> Option<ProcessFileResult> {
+    ) -> Result<ProcessFileResult, Error> {
         let file_content = read_to_string(child.clone())
             .await
             .unwrap_or("".to_string());
@@ -140,18 +145,19 @@ In your summary, please explicitly state any assumptions or contextual informati
                 None,
             ),
             Err(e) => {
-                println!("Error: {}", e);
+                println!("Error: {}", e.to_string());
+                // return e;
                 (None, Some(e.to_string()))
             }
         };
 
         if let Some(err) = error {
-            println!("Error: {}", err);
+            return Err(Error::new(ErrorKind::Other, err));
         }
 
         let hash = Self::calculate_file_hash(child.clone()).await;
 
-        Some(ProcessFileResult {
+        Ok(ProcessFileResult {
             llm_response: interpretation.unwrap(),
             file_path: child.clone(),
             hash,

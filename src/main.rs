@@ -157,18 +157,19 @@ async fn main() {
 
             let software_project = Project::new(PathBuf::from(project_root_path));
 
-            let mut g = Growth::new();
-
-            let data = g.traversal_modules(software_project).await;
+            let data = Growth::new()
+                .traversal_modules(software_project)
+                .await
+                .to_owned();
 
             let arc_engine = Arc::new(engine);
 
             let wg = WaitGroup::new();
 
-            data[..1].iter().for_each(|directory| {
-                for child in directory.children.clone() {
-                    let g = Growth::new();
+            let workers_number = 4;
 
+            for directory in data {
+                for child in directory.children {
                     match child {
                         SourceAtom::File(child, kind) => {
                             let arc_engine_clone = Arc::clone(&arc_engine);
@@ -177,8 +178,9 @@ async fn main() {
                             tokio::spawn(async move {
                                 println!("Processing {} - {}", child.to_str().unwrap(), kind);
 
-                                let interpretation = g.process_file(child, arc_engine_clone).await;
-                                println!("Interpretation: {:#?}", interpretation);
+                                let interpretation =
+                                    Growth::new().process_file(child, arc_engine_clone).await;
+                                println!("Interpretation: {:?}", interpretation);
 
                                 drop(wg);
                             });
@@ -188,7 +190,10 @@ async fn main() {
                 }
 
                 println!("Processing {:}\n", directory.root.to_str().unwrap());
-            });
+            }
+
+            // wg.wait();
+
             // for directory in data.iter().take(1) {
             //     // let children_list = directory.children.clone().iter();
 
@@ -216,7 +221,6 @@ async fn main() {
             // // save document content to file
             // let mut file = File::create("analysis_full.md").unwrap();
             // file.write_all(document_content.as_bytes()).unwrap();
-            wg.wait();
         }
     }
 }
