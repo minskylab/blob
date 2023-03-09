@@ -34,6 +34,13 @@ pub struct ProcessFileResult {
     pub hash: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct ProcessDirResult {
+    pub llm_response: String,
+    pub dir_path: PathBuf,
+    pub processed_files: Vec<ProcessFileResult>,
+}
+
 impl Growth {
     pub fn new() -> Self {
         Growth {}
@@ -173,5 +180,55 @@ In your summary, please explicitly state any assumptions or contextual informati
         let hash_bytes = hasher.finalize();
 
         format!("{:x}", hash_bytes)
+    }
+
+    pub async fn process_dir_results(
+        dir_path: PathBuf,
+        accumulated_results: Vec<ProcessFileResult>,
+        arc_engine_clone: Arc<LLMEngine>,
+    ) -> ProcessDirResult {
+        let files_block = accumulated_results
+            .iter()
+            .map(|r| format!("#{}\n{}\n", r.file_path.to_str().unwrap(), r.llm_response))
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        let final_prompt = format!(
+            "{}\n\nEach section above represents a file in the directory {}. Please generate a comprehensive, detailed, and specific summary for all directory. Your summary should include the following information:
+            1. Purpose of the code: what does the code do, what problem does it solve, and what is its intended effect in the context of the overall system or business logic? Provide an overview of the code's main function and any notable behavior.
+2. Programming constructs used: what programming language is the code written in, and what specific constructs are used (e.g. functions, classes, loops, conditionals, etc.)? Describe the syntax, purpose, and behavior of the constructs used.
+3. Algorithms or data structures employed: does the code use any specific algorithms or data structures (e.g. sorting algorithms, tree structures, etc.)? If so, explain what they are and how they are used in the code. Discuss the time and space complexity of any algorithms used.
+4. Business logic inferred from the code: what can you infer about the business logic or system the code is a part of based on the code itself? Provide examples of the inputs, outputs, and processing of the code that support your inference.
+5. Notable features or challenges: are there any interesting or challenging aspects of the code that you would like to highlight? This can include efficiency, scalability, maintainability, edge cases, etc.
+
+In your summary, please explicitly state any assumptions or contextual information necessary to understand the code and its behavior within the larger system. Additionally, use appropriate references to any external dependencies, data sources, or other related code snippets as needed.
+",
+files_block,
+            dir_path.to_str().unwrap()
+        );
+
+        let completion_response = arc_engine_clone
+            .codex_processor
+            .clone()
+            .completions_call(final_prompt.clone(), Some(vec!["#".to_string()]))
+            .await;
+
+        let (interpretation, error) = match completion_response.as_ref() {
+            Ok(completion) => (
+                Some(completion.choices.first().unwrap().text.trim().to_string()),
+                None,
+            ),
+            Err(e) => {
+                println!("Error: {}", e.to_string());
+                // return e;
+                (None, Some(e.to_string()))
+            }
+        };
+
+        ProcessDirResult {
+            dir_path: dir_path.clone(),
+            processed_files: accumulated_results,
+            llm_response: interpretation.unwrap(),
+        }
     }
 }

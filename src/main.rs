@@ -13,6 +13,7 @@ use structure::growth::Growth;
 use tokio::fs::read_to_string;
 
 use crate::llm::templates::interpretation_prompt_template;
+use crate::structure::growth::ProcessDirResult;
 use crate::structure::software::{Project, SourceAtom};
 use crossbeam_utils::sync::WaitGroup;
 
@@ -160,39 +161,68 @@ async fn main() {
             let data = Growth::new()
                 .traversal_modules(software_project)
                 .await
-                .to_owned();
+                .to_owned()
+                .into_iter();
 
             let arc_engine = Arc::new(engine);
 
-            let wg = WaitGroup::new();
-
             let workers_number = 4;
 
-            for directory in data {
+            for directory in data.take(2) {
+                let wg = WaitGroup::new();
+                let mut file_results = Vec::new();
+
                 for child in directory.children {
                     match child {
                         SourceAtom::File(child, kind) => {
                             let arc_engine_clone = Arc::clone(&arc_engine);
 
                             let wg = wg.clone();
-                            tokio::spawn(async move {
+                            file_results.push(tokio::spawn(async move {
                                 println!("Processing {} - {}", child.to_str().unwrap(), kind);
 
                                 let interpretation =
                                     Growth::new().process_file(child, arc_engine_clone).await;
                                 println!("Interpretation: {:?}", interpretation);
 
+                                // file_results.push(interpretation.unwrap());
                                 drop(wg);
-                            });
+
+                                interpretation
+                            }));
                         }
                         _ => println!("Unknown"),
                     };
                 }
+                wg.wait();
 
-                println!("Processing {:}\n", directory.root.to_str().unwrap());
+                let mut accumulated_results = Vec::new();
+
+                let arc_engine_clone = Arc::clone(&arc_engine);
+                for res in file_results {
+                    let result = res.await.unwrap().unwrap();
+                    accumulated_results.push(result);
+                }
+
+                // let dir_result = ProcessDirResult {
+                //     dir_path: directory.root,
+                //     processed_files: accumulated_results,
+                // };
+                let dir_result = Growth::process_dir_results(
+                    directory.root,
+                    accumulated_results,
+                    arc_engine_clone,
+                )
+                .await;
+
+                // file_results
+                //     .iter()
+                //     .map(|res| async move { res.await.unwrap().unwrap() });
+
+                println!("Dir result: {:?}", dir_result);
+
+                // println!("Processing {:}\n", directory.root.to_str().unwrap());
             }
-
-            // wg.wait();
 
             // for directory in data.iter().take(1) {
             //     // let children_list = directory.children.clone().iter();
