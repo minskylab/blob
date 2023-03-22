@@ -23,6 +23,12 @@ pub struct LLMEngine {
     pub codex_processor: CodexProcessor,
 }
 
+impl Default for LLMEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl LLMEngine {
     pub fn new() -> Self {
         let access_token = std::env::var("OPENAI_API_KEY").unwrap();
@@ -159,7 +165,7 @@ impl LLMEngine {
                     }
                 }
             })
-            .filter(|el| if el.0 == None { false } else { true })
+            .filter(|el| el.0.is_some())
             .collect();
 
         let mut source_code_analysis: Vec<ProjectSourceFileAnalysis> = Vec::new();

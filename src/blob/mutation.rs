@@ -127,18 +127,18 @@ impl ProjectMutationProposed {
 # Unix commands to perform transformation:
 cd {}
 ",
-            context_definitions.trim_end().replace("\n", "\n# "),
+            context_definitions.trim_end().replace('\n', "\n# "),
             self.parent.as_ref().path_root,
-            self.current_structure.trim_end().replace("\n", "\n# "),
-            self.parent.as_ref().prompt.trim_end().replace("\n", "\n# "),
+            self.current_structure.trim_end().replace('\n', "\n# "),
+            self.parent.as_ref().prompt.trim_end().replace('\n', "\n# "),
             self.parent
                 .as_ref()
                 .path_root
                 .trim_end()
-                .replace("\n", "\n# "),
-            self.proposed_structure.trim_end().replace("\n", "\n# "),
-            pwd_result.trim_end().replace("\n", "\n# "),
-            ls_result.trim_end().replace("\n", "\n# "),
+                .replace('\n', "\n# "),
+            self.proposed_structure.trim_end().replace('\n', "\n# "),
+            pwd_result.trim_end().replace('\n', "\n# "),
+            ls_result.trim_end().replace('\n', "\n# "),
             self.parent.as_ref().path_root,
         ))
     }

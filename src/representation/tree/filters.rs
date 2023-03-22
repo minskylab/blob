@@ -22,25 +22,17 @@ where
     }
 }
 
+#[derive(Default)]
 pub struct FilterAggregate {
     filters: Vec<Box<dyn FileFilter>>,
 }
 
 impl FilterAggregate {
-    /// Add a filter to the collection.
     pub fn push<F>(&mut self, filter: F)
     where
         F: FileFilter + 'static,
     {
         self.filters.push(Box::new(filter));
-    }
-}
-
-impl Default for FilterAggregate {
-    fn default() -> Self {
-        FilterAggregate {
-            filters: Vec::new(),
-        }
     }
 }
 

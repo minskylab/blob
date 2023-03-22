@@ -6,14 +6,14 @@ use std::{
 };
 
 use sha2::{Digest, Sha256};
-use std::{fs, io, io::copy};
+use std::{fs, io};
 use tokio::fs::read_to_string;
 
 use crate::llm::{engine::LLMEngine, templates::interpretation_prompt_template};
 
 use super::software::{Project, SourceAtom};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Growth {}
 
 #[derive(Debug, Clone)]
@@ -43,12 +43,8 @@ pub struct ProcessDirResult {
 }
 
 impl Growth {
-    pub fn new() -> Self {
-        Growth {}
-    }
-
     pub async fn traversal_modules(mut software_project: Project) -> Vec<BlobProcessedDir<String>> {
-        let mut source_file_map: Box<HashMap<String, String>> = Box::new(HashMap::new());
+        let mut source_file_map: Box<HashMap<String, String>> = Box::default();
 
         let mut data = software_project
             .calculate_source(move |atom| match atom {
@@ -63,11 +59,8 @@ impl Growth {
                                 .map(|v| v.mime_type().to_string())
                                 .unwrap_or(
                                     path.extension()
-                                        .map(|v| {
-                                            format!("text/{}", v.to_str().unwrap().to_string())
-                                        })
-                                        .unwrap_or("unknown/unknown".to_string())
-                                        .to_string(),
+                                        .map(|v| format!("text/{}", v.to_str().unwrap()))
+                                        .unwrap_or("unknown/unknown".to_string()),
                                 );
 
                             source_file_map
@@ -81,16 +74,14 @@ impl Growth {
             })
             .await
             .iter()
-            .map(|atom| match atom {
+            .filter_map(|atom| match atom {
                 SourceAtom::Dir(path, children, _) => Some(BlobProcessedDir {
                     children: children.clone(),
-                    level: path.to_str().to_owned().unwrap().split("/").count() - 1,
+                    level: path.to_str().to_owned().unwrap().split('/').count() - 1,
                     root: path.clone(),
                 }),
                 _ => None,
             })
-            .filter(|atom| atom.is_some())
-            .map(|atom| atom.unwrap())
             .collect::<Vec<BlobProcessedDir<String>>>();
 
         data.sort_by(|a, b| a.level.cmp(&b.level));
@@ -149,7 +140,7 @@ In your summary, please explicitly state any assumptions or contextual informati
                 None,
             ),
             Err(e) => {
-                println!("Error: {}", e.to_string());
+                println!("Error: {}", e);
                 // return e;
                 (None, Some(e.to_string()))
             }
@@ -182,9 +173,9 @@ In your summary, please explicitly state any assumptions or contextual informati
     pub async fn calculate_dir_hash(dir: PathBuf) -> String {
         let mut hasher = Sha256::new();
 
-        let mut files = fs::read_dir(dir).unwrap();
+        let files = fs::read_dir(dir).unwrap();
 
-        while let Some(file) = files.next() {
+        for file in files {
             let file = file.unwrap();
             let mut file = fs::File::open(file.path()).unwrap();
 
@@ -227,13 +218,13 @@ files_block,
             .completions_call(final_prompt.clone(), Some(vec!["#".to_string()]))
             .await;
 
-        let (interpretation, error) = match completion_response.as_ref() {
+        let (interpretation, _) = match completion_response.as_ref() {
             Ok(completion) => (
                 Some(completion.choices.first().unwrap().text.trim().to_string()),
                 None,
             ),
             Err(e) => {
-                println!("Error: {}", e.to_string());
+                println!("Error: {}", e);
                 // return e;
                 (None, Some(e.to_string()))
             }

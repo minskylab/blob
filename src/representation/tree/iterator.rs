@@ -52,10 +52,7 @@ impl FilteredDir {
         P: AsRef<Path>,
     {
         fs::read_dir(&path)
-            .map(|dir| FilteredDir {
-                file_filter: file_filter,
-                dir: dir,
-            })
+            .map(|dir| FilteredDir { file_filter, dir })
             .map_err(|err| {
                 From::from(format!(
                     "Failed to read dir '{}': {}",
@@ -83,7 +80,7 @@ impl Iterator for FilteredDir {
 
             let should_yield = match self.file_filter.filter(entry.path().as_path()) {
                 Ok(should_yield) => should_yield,
-                Err(err) => return Some(Err(From::from(err))),
+                Err(err) => return Some(Err(err)),
             };
 
             if should_yield {
@@ -106,9 +103,7 @@ impl TreeIter {
     {
         let rc_filter = Rc::new(file_filter);
 
-        let p = path.clone();
-
-        fs::read_dir(p)
+        fs::read_dir(path)
             .map(|dir| {
                 let filtered = FilteredDir {
                     file_filter: rc_filter.clone(),
@@ -142,7 +137,7 @@ fn has_next_sibling<T, E, I: Iterator<Item = Result<T, E>>>(dir: &mut Peekable<I
 fn next_entry(dir: &mut Peekable<FilteredDir>) -> Option<Result<Entry, Box<dyn Error>>> {
     let entry = match dir.next() {
         Some(Ok(entry)) => entry,
-        Some(Err(err)) => return Some(Err(From::from(err))),
+        Some(Err(err)) => return Some(Err(err)),
         None => return None,
     };
 
@@ -179,14 +174,15 @@ impl Iterator for TreeIter {
                 None => return None,
             };
 
-            self.dir_stack.pop();
-            return Some(Ok(Event::CloseDir));
+            if self.dir_stack.pop().is_none() {
+                return Some(Ok(Event::CloseDir));
+            }
         }
 
         if entry.metadata.is_dir() {
             match FilteredDir::new(&entry.path, self.file_filter.clone()) {
                 Ok(dir) => self.dir_stack.push(dir.peekable()),
-                Err(err) => return Some(Err(From::from(err))),
+                Err(err) => return Some(Err(err)),
             };
 
             Some(Ok(Event::OpenDir(entry)))

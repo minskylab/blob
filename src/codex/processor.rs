@@ -22,7 +22,7 @@ impl CodexProcessor {
     }
 
     pub async fn edit_call(
-        self: Self,
+        self,
         input: impl Into<String>,
         instruction: impl Into<String>,
     ) -> Result<EditResponse> {
@@ -61,7 +61,7 @@ impl CodexProcessor {
     }
 
     pub async fn completions_call(
-        self: Self,
+        self,
         prompt: impl Into<String>,
         stop_words: Option<Vec<String>>,
     ) -> Result<CompletionResponse> {

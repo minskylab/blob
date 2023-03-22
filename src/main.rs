@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Arc;
@@ -10,10 +9,7 @@ use cli::tool::{BlobTool, Commands};
 use dotenv::dotenv;
 use llm::engine::LLMEngine;
 use structure::growth::Growth;
-use tokio::fs::read_to_string;
 
-use crate::llm::templates::interpretation_prompt_template;
-use crate::structure::growth::ProcessDirResult;
 use crate::structure::software::{Project, SourceAtom};
 use crossbeam_utils::sync::WaitGroup;
 
@@ -30,10 +26,7 @@ fn ask_for_confirmation() -> bool {
     let mut input = String::new();
     std::io::stdin().read_line(&mut input).unwrap();
 
-    match input.trim() {
-        "y" | "yes" => true,
-        _ => false,
-    }
+    matches!(input.trim(), "y" | "yes")
 }
 
 fn apply_source_file_mutation(
@@ -96,7 +89,7 @@ async fn main() {
                     true => {
                         println!(
                             "Updated source file to {}",
-                            source_file_mutation.clone().parent.file_path
+                            source_file_mutation.parent.file_path
                         );
                         apply_source_file_mutation(mutation_folder_path, source_file_mutation)
                     }
@@ -143,7 +136,7 @@ async fn main() {
         Commands::Define { definition } => {
             context_processor.save_project_definitions(vec![definition.clone().unwrap()]);
         }
-        Commands::Analyze { file } => {
+        Commands::Analyze { file: _ } => {
             // let definitions =
             // context_processor.retrieve_definitions(blob::context::BlobDefinitionKind::Project);
 
@@ -160,12 +153,11 @@ async fn main() {
 
             let data = Growth::traversal_modules(software_project)
                 .await
-                .to_owned()
                 .into_iter();
 
             let arc_engine = Arc::new(engine);
 
-            let workers_number = 4;
+            // let workers_number = 4;
 
             for directory in data.take(1) {
                 let wg = WaitGroup::new();

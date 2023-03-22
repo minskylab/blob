@@ -118,7 +118,7 @@ impl BlobContextProcessor {
         let final_script_path = format!("{new_context_path}/script.sh");
         let metadata_path = format!("{new_context_path}/metadata.json");
 
-        create_dir_all(new_context_path.clone()).unwrap();
+        create_dir_all(new_context_path).unwrap();
 
         let bash_script = project_mutation.clone().full_script;
 
@@ -132,7 +132,7 @@ impl BlobContextProcessor {
 
         script_file.write_all(bash_script.as_bytes()).unwrap();
 
-        let mut metadata_file = File::create(metadata_path.clone()).unwrap();
+        let mut metadata_file = File::create(metadata_path).unwrap();
 
         let metadata = BlobMutationMetadata {
             created_at: project_mutation.parent.parent.created_at,
@@ -153,16 +153,14 @@ impl BlobContextProcessor {
         // source_file_mutation.clone().parent.file_path
         let mutated_source_file_path = format!(
             "{}/{}",
-            new_context_path,
-            source_file_mutation.clone().parent.file_path
+            new_context_path, source_file_mutation.parent.file_path
         );
 
         let directories_only = source_file_mutation
-            .clone()
             .parent
             .file_path
             .clone()
-            .split("/")
+            .split('/')
             .collect::<Vec<&str>>()
             .split_last()
             .unwrap()
@@ -171,7 +169,7 @@ impl BlobContextProcessor {
 
         let directories_mutated_source_file_path = format!("{new_context_path}/{directories_only}");
 
-        create_dir_all(directories_mutated_source_file_path.clone()).unwrap();
+        create_dir_all(directories_mutated_source_file_path).unwrap();
 
         // let mutated_source_file_path = format!("{mutated_script_path}/script.sh");
         let metadata_path = format!("{new_context_path}/metadata.json");
@@ -184,7 +182,7 @@ impl BlobContextProcessor {
             .write_all(source_file_content.as_bytes())
             .unwrap();
 
-        let mut metadata_file = File::create(metadata_path.clone()).unwrap();
+        let mut metadata_file = File::create(metadata_path).unwrap();
 
         let metadata = BlobMutationMetadata {
             created_at: source_file_mutation.parent.created_at,
@@ -196,12 +194,12 @@ impl BlobContextProcessor {
 
         metadata_file.write_all(metadata_json.as_bytes()).unwrap();
 
-        mutated_source_file_path.to_string()
+        mutated_source_file_path
     }
 
     pub fn retrieve_definitions(&self, kind: BlobDefinitionKind) -> Vec<BlobDefinition> {
         let definitions_root = self.get_definitions_path();
-        let file_path = format!("{}/{}", definitions_root, kind.as_filename().to_string());
+        let file_path = format!("{}/{}", definitions_root, kind.as_filename());
 
         let mut definitions = Vec::new();
 
@@ -214,10 +212,10 @@ impl BlobContextProcessor {
 
         file.read_to_string(&mut contents).unwrap();
 
-        let lines = contents.split("\n");
+        let lines = contents.split('\n');
 
         for line in lines {
-            let parts = line.split(",").collect::<Vec<&str>>();
+            let parts = line.split(',').collect::<Vec<&str>>();
 
             if parts.len() == 2 {
                 let created_at_str = parts[0].trim();
@@ -247,8 +245,7 @@ impl BlobContextProcessor {
 
         create_dir_all(definitions_root.clone()).unwrap();
 
-        let file_path = format!("{}/{}", definitions_root, kind.as_filename().to_string());
-        // let mut file = File::create().unwrap();
+        let file_path = format!("{}/{}", definitions_root, kind.as_filename());
 
         let mut file = OpenOptions::new()
             .write(true)

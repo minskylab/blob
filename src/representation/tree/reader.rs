@@ -1,9 +1,5 @@
-use futures::{stream, Stream, StreamExt};
-use std::path::{Path, PathBuf};
-use tokio::{
-    fs::{self, DirEntry},
-    io,
-}; // 0.3.1
+// use futures::{stream, Stream, StreamExt};
+use std::path::Path; // PathBuf
 
 use super::iterator::{Entry, TreeProcessor};
 
@@ -16,45 +12,45 @@ pub struct TreeFileWalker {
     visitor: TreeVisitWalkerFunction,
 }
 
-pub async fn visit_file_path(
-    path: impl Into<PathBuf>,
-) -> impl Stream<Item = io::Result<DirEntry>> + Send + 'static {
-    async fn one_level(path: PathBuf, to_visit: &mut Vec<PathBuf>) -> io::Result<Vec<DirEntry>> {
-        let mut dir = fs::read_dir(path).await?;
-        let mut files = Vec::new();
+// pub async fn visit_file_path(
+//     path: impl Into<PathBuf>,
+// ) -> impl Stream<Item = io::Result<DirEntry>> + Send + 'static {
+//     async fn one_level(path: PathBuf, to_visit: &mut Vec<PathBuf>) -> io::Result<Vec<DirEntry>> {
+//         let mut dir = fs::read_dir(path).await?;
+//         let mut files = Vec::new();
 
-        while let Some(child) = dir.next_entry().await? {
-            if child.metadata().await?.is_dir() {
-                to_visit.push(child.path());
-            } else {
-                files.push(child)
-            }
-        }
+//         while let Some(child) = dir.next_entry().await? {
+//             if child.metadata().await?.is_dir() {
+//                 to_visit.push(child.path());
+//             } else {
+//                 files.push(child)
+//             }
+//         }
 
-        Ok(files)
-    }
+//         Ok(files)
+//     }
 
-    stream::unfold(vec![path.into()], |mut to_visit| async {
-        let path = to_visit.pop()?;
-        let file_stream = match one_level(path, &mut to_visit).await {
-            Ok(files) => stream::iter(files).map(Ok).left_stream(),
-            Err(e) => stream::once(async { Err(e) }).right_stream(),
-        };
+//     stream::unfold(vec![path.into()], |mut to_visit| async {
+//         let path = to_visit.pop()?;
+//         let file_stream = match one_level(path, &mut to_visit).await {
+//             Ok(files) => stream::iter(files).map(Ok).left_stream(),
+//             Err(e) => stream::once(async { Err(e) }).right_stream(),
+//         };
 
-        Some((file_stream, to_visit))
-    })
-    .flatten()
-}
+//         Some((file_stream, to_visit))
+//     })
+//     .flatten()
+// }
 
 impl TreeFileWalker {
-    pub fn new(visitor: TreeVisitWalkerFunction) -> Self {
-        TreeFileWalker {
-            dir_has_next: vec![true],
-            num_dirs: 0,
-            num_files: 0,
-            visitor,
-        }
-    }
+    // pub fn new(visitor: TreeVisitWalkerFunction) -> Self {
+    //     TreeFileWalker {
+    //         dir_has_next: vec![true],
+    //         num_dirs: 0,
+    //         num_files: 0,
+    //         visitor,
+    //     }
+    // }
 }
 
 impl TreeProcessor for TreeFileWalker {

@@ -45,7 +45,7 @@ impl TreeRepresentation {
             }
         }
 
-        entry.push_str(&format!("{}\n", name.to_string()));
+        entry.push_str(&format!("{}\n", name));
 
         entry
     }
