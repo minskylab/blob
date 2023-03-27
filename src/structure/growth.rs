@@ -1,10 +1,6 @@
-use std::{
-    collections::HashMap,
-    io::{Error, ErrorKind},
-    path::PathBuf,
-    sync::Arc,
-};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
+use anyhow::{anyhow, Result};
 use sha2::{Digest, Sha256};
 use std::{fs, io};
 use tokio::fs::read_to_string;
@@ -19,7 +15,7 @@ pub struct Growth {}
 #[derive(Debug, Clone)]
 pub struct BlobProcessedDir<T>
 where
-    T: Clone,
+    T: Clone + Sync,
 {
     // atom: SourceAtom<String>,
     pub root: PathBuf,
@@ -27,20 +23,34 @@ where
     pub children: Vec<SourceAtom<T>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ProcessFileResult {
     pub llm_response: String,
     pub file_path: PathBuf,
     pub hash: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ProcessDirResult {
     pub llm_response: String,
     pub dir_path: PathBuf,
     pub processed_files: Vec<ProcessFileResult>,
     pub hash: String,
 }
+
+const DEFAULT_PROMPT_SOURCE_CODE: &str = "Please generate a comprehensive, detailed, and specific summary of the following code snippet.";
+const DEFAULT_PROMPT_FOLDER: &str =
+    "Please generate a comprehensive, detailed, and specific summary for all directory.";
+
+const DEFAULT_PROMPT_GENERAL_INSTRUCTION: &str = "Your summary should include the following information:
+1. Purpose of the code: what does the code do, what problem does it solve, and what is its intended effect in the context of the overall system or business logic? Provide an overview of the code's main function and any notable behavior.
+2. Programming constructs used: what programming language is the code written in, and what specific constructs are used (e.g. functions, classes, loops, conditionals, etc.)? Describe the syntax, purpose, and behavior of the constructs used.
+3. Algorithms or data structures employed: does the code use any specific algorithms or data structures (e.g. sorting algorithms, tree structures, etc.)? If so, explain what they are and how they are used in the code. Discuss the time and space complexity of any algorithms used.
+4. Business logic inferred from the code: what can you infer about the business logic or system the code is a part of based on the code itself? Provide examples of the inputs, outputs, and processing of the code that support your inference.
+5. Notable features or challenges: are there any interesting or challenging aspects of the code that you would like to highlight? This can include efficiency, scalability, maintainability, edge cases, etc.
+
+In your summary, please explicitly state any assumptions or contextual information necessary to understand the code and its behavior within the larger system. Additionally, use appropriate references to any external dependencies, data sources, or other related code snippets as needed.
+";
 
 impl Growth {
     pub async fn traversal_modules(mut software_project: Project) -> Vec<BlobProcessedDir<String>> {
@@ -54,14 +64,15 @@ impl Growth {
                     match content {
                         Some(content) => content.to_owned(),
                         None => {
-                            let kind = infer::get_from_path(path)
-                                .unwrap()
-                                .map(|v| v.mime_type().to_string())
-                                .unwrap_or(
-                                    path.extension()
-                                        .map(|v| format!("text/{}", v.to_str().unwrap()))
-                                        .unwrap_or("unknown/unknown".to_string()),
-                                );
+                            let default_kind = path
+                                .extension()
+                                .map(|v| format!("text/{}", v.to_str().unwrap()))
+                                .unwrap_or("unknown/unknown".to_string());
+
+                            let kind = infer::get_from_path(path).map_or(default_kind, |v| {
+                                v.map(|v| v.mime_type().to_string())
+                                    .unwrap_or("unknown/unknown".to_string())
+                            });
 
                             source_file_map
                                 .insert(path.to_str().unwrap().to_string(), kind.clone());
@@ -101,7 +112,7 @@ impl Growth {
     pub async fn process_file(
         child: PathBuf,
         arc_engine_clone: Arc<LLMEngine>,
-    ) -> Result<ProcessFileResult, Error> {
+    ) -> Result<ProcessFileResult> {
         let file_content = read_to_string(child.clone())
             .await
             .unwrap_or("".to_string());
@@ -115,18 +126,13 @@ impl Growth {
         };
 
         let final_prompt = interpretation_prompt_template(
-        child.as_path(),
-        file_content.get(..upper).unwrap().to_string(),
-    "Please generate a comprehensive, detailed, and specific summary of the following code snippet. Your summary should include the following information:
-
-1. Purpose of the code: what does the code do, what problem does it solve, and what is its intended effect in the context of the overall system or business logic? Provide an overview of the code's main function and any notable behavior.
-2. Programming constructs used: what programming language is the code written in, and what specific constructs are used (e.g. functions, classes, loops, conditionals, etc.)? Describe the syntax, purpose, and behavior of the constructs used.
-3. Algorithms or data structures employed: does the code use any specific algorithms or data structures (e.g. sorting algorithms, tree structures, etc.)? If so, explain what they are and how they are used in the code. Discuss the time and space complexity of any algorithms used.
-4. Business logic inferred from the code: what can you infer about the business logic or system the code is a part of based on the code itself? Provide examples of the inputs, outputs, and processing of the code that support your inference.
-5. Notable features or challenges: are there any interesting or challenging aspects of the code that you would like to highlight? This can include efficiency, scalability, maintainability, edge cases, etc.
-
-In your summary, please explicitly state any assumptions or contextual information necessary to understand the code and its behavior within the larger system. Additionally, use appropriate references to any external dependencies, data sources, or other related code snippets as needed.
-".to_string());
+            child.as_path(),
+            file_content.get(..upper).unwrap().to_string(),
+            format!(
+                "{}{}",
+                DEFAULT_PROMPT_SOURCE_CODE, DEFAULT_PROMPT_GENERAL_INSTRUCTION
+            ),
+        );
 
         let completion_response = arc_engine_clone
             .codex_processor
@@ -147,7 +153,7 @@ In your summary, please explicitly state any assumptions or contextual informati
         };
 
         if let Some(err) = error {
-            return Err(Error::new(ErrorKind::Other, err));
+            return Err(anyhow!("{}", err));
         }
 
         let hash = Self::calculate_file_hash(child.clone()).await;
@@ -199,17 +205,11 @@ In your summary, please explicitly state any assumptions or contextual informati
             .join("\n");
 
         let final_prompt = format!(
-            "{}\n\nEach section above represents a file in the directory {}. Please generate a comprehensive, detailed, and specific summary for all directory. Your summary should include the following information:
-            1. Purpose of the code: what does the code do, what problem does it solve, and what is its intended effect in the context of the overall system or business logic? Provide an overview of the code's main function and any notable behavior.
-2. Programming constructs used: what programming language is the code written in, and what specific constructs are used (e.g. functions, classes, loops, conditionals, etc.)? Describe the syntax, purpose, and behavior of the constructs used.
-3. Algorithms or data structures employed: does the code use any specific algorithms or data structures (e.g. sorting algorithms, tree structures, etc.)? If so, explain what they are and how they are used in the code. Discuss the time and space complexity of any algorithms used.
-4. Business logic inferred from the code: what can you infer about the business logic or system the code is a part of based on the code itself? Provide examples of the inputs, outputs, and processing of the code that support your inference.
-5. Notable features or challenges: are there any interesting or challenging aspects of the code that you would like to highlight? This can include efficiency, scalability, maintainability, edge cases, etc.
-
-In your summary, please explicitly state any assumptions or contextual information necessary to understand the code and its behavior within the larger system. Additionally, use appropriate references to any external dependencies, data sources, or other related code snippets as needed.
-",
-files_block,
-            dir_path.to_str().unwrap()
+            "{}\n\nEach section above represents a file in the directory {}. {}{}",
+            files_block,
+            dir_path.to_str().unwrap(),
+            DEFAULT_PROMPT_FOLDER,
+            DEFAULT_PROMPT_GENERAL_INSTRUCTION
         );
 
         let completion_response = arc_engine_clone

@@ -16,7 +16,6 @@ use crate::blob::mutation::ProjectMutation;
 use crate::blob::mutation::SourceFileMutation;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-// #[serde(rename_all = "camelCase")]
 pub struct BlobDefinition {
     #[serde(with = "ts_seconds")]
     pub created_at: DateTime<Utc>,

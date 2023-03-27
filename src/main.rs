@@ -1,14 +1,23 @@
+use std::fmt::Display;
+
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Arc;
+use std::time::Duration;
 
+use anyhow::{anyhow, Result};
 use blob::context::BlobContextProcessor;
 use blob::mutation::{ProjectMutationDraft, SourceFileMutation, SourceFileMutationDraft};
 use clap::Parser;
 use cli::tool::{BlobTool, Commands};
 use dotenv::dotenv;
 use llm::engine::LLMEngine;
-use structure::growth::Growth;
+
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
+use rayon::slice::ParallelSlice;
+use structure::growth::{Growth, ProcessFileResult};
+use tokio::spawn;
+use tokio::time::sleep;
 
 use crate::structure::software::{Project, SourceAtom};
 use crossbeam_utils::sync::WaitGroup;
@@ -137,111 +146,125 @@ async fn main() {
             context_processor.save_project_definitions(vec![definition.clone().unwrap()]);
         }
         Commands::Analyze { file: _ } => {
-            // let definitions =
-            // context_processor.retrieve_definitions(blob::context::BlobDefinitionKind::Project);
-
-            // let context_lines = definitions
-            //     .iter()
-            //     .map(|def| def.definition.clone())
-            //     .collect();
-
-            // let analysis = engine.analyze_project(context_lines).await;
-
-            // let mut source_file_map: Box<HashMap<String, String>> = Box::new(HashMap::new());
-
             let software_project = Project::new(PathBuf::from(project_root_path));
 
-            let data = Growth::traversal_modules(software_project)
-                .await
-                .into_iter();
+            let data = Growth::traversal_modules(software_project).await;
 
-            let arc_engine = Arc::new(engine);
-
-            // let workers_number = 4;
-
-            for directory in data.take(1) {
-                let wg = WaitGroup::new();
-                let mut file_results = Vec::new();
-
-                for child in directory.children {
-                    match child {
-                        SourceAtom::File(child, kind) => {
-                            let arc_engine_clone = Arc::clone(&arc_engine);
-
-                            let wg = wg.clone();
-                            file_results.push(tokio::spawn(async move {
-                                println!("Processing {} - {}", child.to_str().unwrap(), kind);
-
-                                let interpretation =
-                                    Growth::process_file(child, arc_engine_clone).await;
-                                println!("Interpretation: {:?}", interpretation);
-
-                                // file_results.push(interpretation.unwrap());
-                                drop(wg);
-
-                                interpretation
-                            }));
-                        }
-                        _ => println!("Unknown"),
-                    };
-                }
-                wg.wait();
-
-                let mut accumulated_results = Vec::new();
-
-                let arc_engine_clone = Arc::clone(&arc_engine);
-                for res in file_results {
-                    let result = res.await.unwrap().unwrap();
-                    accumulated_results.push(result);
-                }
-
-                // let dir_result = ProcessDirResult {
-                //     dir_path: directory.root,
-                //     processed_files: accumulated_results,
-                // };
-                let dir_result = Growth::process_dir_results(
-                    directory.root,
-                    accumulated_results,
-                    arc_engine_clone,
-                )
-                .await;
-
-                // file_results
-                //     .iter()
-                //     .map(|res| async move { res.await.unwrap().unwrap() });
-
-                println!("Dir result: {:?}", dir_result);
-
-                // println!("Processing {:}\n", directory.root.to_str().unwrap());
-            }
-
-            // for directory in data.iter().take(1) {
-            //     // let children_list = directory.children.clone().iter();
-
+            // for d in data {
+            //     println!("{:?}", d);
             // }
 
-            // let analysis = ProjectAnalysisDraft::new_with_default_prompt(project_root_path.clone());
+            // let arc_engine = Arc::new(engine);
 
-            // let result = engine.generate_recursive_analysis(Box::new(analysis)).await;
+            // let workers_number = 2;
 
-            // // println!("Analysis: {:#?}", analysis);
-            // let document_content = result
-            //     .source_files
-            //     .iter()
-            //     .filter(|source| source.error.is_none())
-            //     .map(|source| {
-            //         format!(
-            //             "## {}\n### Definition\n{}",
-            //             source.file_path,
-            //             source.result.as_ref().unwrap()
-            //         )
+            // let pool = rayon::ThreadPoolBuilder::new()
+            //     .num_threads(workers_number)
+            //     .build()
+            //     .unwrap();
+
+            // for directory in data.take(1) {
+            // let mut file_results: Vec<_> = Vec::new();
+
+            // let children = directory.children.clone();
+            // println!("{:?}", directory);
+            // let chunks = children.chunks(workers_number);
+
+            // children
+            //     .par_chunks(workers_number)
+            //     .map(|child_chunk| async {
+            //         let child_chunk = child_chunk.iter().collect::<Vec<_>>();
+
+            //         for child in child_chunk {
+            //             let res = process_file(child.clone(), arc_engine.clone()).await;
+            //             // process_file(child.clone(), arc_engine.clone()).await;
+            //             // file_results.push(res.unwrap());
+
+            //             // file_results.len()
+            //         }
             //     })
-            //     .collect::<Vec<String>>()
-            //     .join("\n\n");
+            //     .collect();
 
-            // // save document content to file
-            // let mut file = File::create("analysis_full.md").unwrap();
-            // file.write_all(document_content.as_bytes()).unwrap();
+            // for child in children {
+            //     let r = pool
+            //         .install(|| async {
+            //             let res = process_file(child.clone(), arc_engine.clone()).await;
+            //             // process_file(child.clone(), arc_engine.clone()).await;
+            //             file_results.push(res.unwrap());
+
+            //             file_results.len()
+            //         })
+            //         .await;
+
+            //     println!("{}", r);
+            // }
+            // }
+
+            // for directory in data {
+            // spawn(async move {
+            // let mut file_results = Vec::new();
+
+            // let children = directory.children.clone();
+            // let chunks = children.chunks(workers_number);
+
+            // for child_chunk in chunks {
+            //     let child_chunk = child_chunk.into_iter().collect::<Vec<_>>();
+
+            //     for child in child_chunk {
+            //         let res = process_file(child.clone(), arc_engine).await;
+            //         file_results.push(res.unwrap());
+            //     }
+            // }
+
+            // arc_engine;
+
+            // let mut accumulated_results = Vec::new();
+            // arc_engine.clone();
+            // // let arc_engine_clone = Arc::clone(&arc_engine);
+            // for res in file_results {
+            //     let result = res; //.unwrap().unwrap();
+            //     accumulated_results.push(result);
+            // }
+
+            // let dir_result = Growth::process_dir_results(
+            //     directory.root,
+            //     accumulated_results,
+            //     arc_engine,
+            // )
+            // .await;
+
+            // println!("Dir result: {:?}", "f");
+            // });
+            // }
         }
     }
+}
+
+async fn process_file<T>(
+    child: SourceAtom<T>,
+    arc_engine: Arc<LLMEngine>,
+) -> Result<ProcessFileResult>
+where
+    T: Clone + Sync + Display,
+{
+    // match child {
+    //     SourceAtom::File(child, kind) => {
+    //         let arc_engine_clone = Arc::clone(&arc_engine);
+
+    //         println!("Processing {} - {}", child.to_str().unwrap(), kind);
+
+    //         let interpretation = Growth::process_file(child.to_path_buf(), arc_engine_clone).await;
+    //         println!("Interpretation: {:?}", interpretation);
+
+    //         interpretation
+    //     }
+    //     _ => {
+    //         println!("Unknown");
+
+    //         Err(anyhow!("Source Atom is not a file"))
+    //     }
+    // }
+    sleep(Duration::from_millis(100)).await;
+
+    Ok(ProcessFileResult::default())
 }

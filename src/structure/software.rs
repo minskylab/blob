@@ -6,7 +6,7 @@ use tokio::fs;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SourceAtom<T = ()>
 where
-    T: Clone,
+    T: Clone + Sync,
 {
     File(PathBuf, T),
     Dir(PathBuf, Vec<SourceAtom<T>>, T),
@@ -29,7 +29,7 @@ impl Project {
 
     pub async fn calculate_source<T, B>(&mut self, mut builder: B) -> Vec<SourceAtom<T>>
     where
-        T: Clone,
+        T: Clone + Sync,
         B: FnMut(&SourceAtom) -> T,
     {
         let mut source = vec![];

@@ -19,7 +19,6 @@ use crate::representation::{
 #[derive(Debug, Clone)]
 pub struct LLMEngine {
     llm_representation: TreeRepresentation,
-    // walker: TreeFileWalker,
     pub codex_processor: CodexProcessor,
 }
 
