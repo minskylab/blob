@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, default, path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, Result};
 use sha2::{Digest, Sha256};
@@ -7,21 +7,20 @@ use tokio::fs::read_to_string;
 
 use crate::llm::{engine::LLMEngine, templates::interpretation_prompt_template};
 
-use super::software::{Project, SourceAtom};
+use super::software::{Project, Source};
 
 #[derive(Debug, Clone, Default)]
 pub struct Growth {}
 
-#[derive(Debug, Clone)]
-pub struct BlobProcessedDir<T>
-where
-    T: Clone + Sync,
-{
-    // atom: SourceAtom<String>,
-    pub root: PathBuf,
-    pub level: usize,
-    pub children: Vec<SourceAtom<T>>,
-}
+// #[derive(Debug, Clone)]
+// pub struct BlobDigestedDir {
+//     // atom: SourceAtom<String>,
+//     pub root: PathBuf,
+//     pub level: usize,
+//     pub mime_type: String,
+//     // pub children: Vec<Source<T>>,
+//     // pub children_dirs: Vec<Box<BlobDigestedDir<T>>>,
+// }
 
 #[derive(Debug, Clone, Default)]
 pub struct ProcessFileResult {
@@ -52,14 +51,41 @@ const DEFAULT_PROMPT_GENERAL_INSTRUCTION: &str = "Your summary should include th
 In your summary, please explicitly state any assumptions or contextual information necessary to understand the code and its behavior within the larger system. Additionally, use appropriate references to any external dependencies, data sources, or other related code snippets as needed.
 ";
 
+#[derive(Debug, Clone, Default)]
+pub enum DigestedSource {
+    DigestedFile {
+        level: usize,
+        mime_type: String,
+    },
+    DigestedDir {
+        root: PathBuf,
+        level: usize,
+        children: Vec<Source<DigestedSource>>,
+    },
+    #[default]
+    Undefined,
+}
+
+impl DigestedSource {
+    fn get_level(&self) -> usize {
+        match self {
+            DigestedSource::DigestedFile { level, .. } => *level,
+            DigestedSource::DigestedDir { level, .. } => *level,
+            DigestedSource::Undefined => 0,
+        }
+    }
+}
+
 impl Growth {
-    pub async fn traversal_modules(mut software_project: Project) -> Vec<BlobProcessedDir<String>> {
-        let mut source_file_map: Box<HashMap<String, String>> = Box::default();
+    pub async fn traversal_modules(mut software_project: Project) -> Vec<DigestedSource> {
+        let mut source_file_map: Box<HashMap<String, DigestedSource>> = Box::default();
 
         let mut data = software_project
-            .calculate_source(move |atom| match atom {
-                SourceAtom::File(path, _) => {
-                    let content = source_file_map.get(&path.to_str().unwrap().to_string());
+            .calculate_source(move |source| match source {
+                Source::File { path, payload: _ } => {
+                    let path_name = path.to_str().unwrap().to_string();
+
+                    let content = source_file_map.get(&path_name);
 
                     match content {
                         Some(content) => content.to_owned(),
@@ -69,38 +95,53 @@ impl Growth {
                                 .map(|v| format!("text/{}", v.to_str().unwrap()))
                                 .unwrap_or("unknown/unknown".to_string());
 
-                            let kind = infer::get_from_path(path).map_or(default_kind, |v| {
-                                v.map(|v| v.mime_type().to_string())
-                                    .unwrap_or("unknown/unknown".to_string())
-                            });
+                            let mime_type = infer::get_from_path(path)
+                                .map_or(default_kind.clone(), |v| {
+                                    v.map(|v| v.mime_type().to_string()).unwrap_or(default_kind)
+                                });
 
-                            source_file_map
-                                .insert(path.to_str().unwrap().to_string(), kind.clone());
+                            let level = path.to_str().to_owned().unwrap().split('/').count() - 1;
+                            let digested = DigestedSource::DigestedFile { mime_type, level };
 
-                            kind
+                            source_file_map.insert(path_name, digested.clone());
+
+                            digested
                         }
                     }
                 }
-                _ => "".to_string(),
+                _ => DigestedSource::default(),
             })
             .await
             .iter()
-            .filter_map(|atom| match atom {
-                SourceAtom::Dir(path, children, _) => Some(BlobProcessedDir {
-                    children: children.clone(),
-                    level: path.to_str().to_owned().unwrap().split('/').count() - 1,
+            .filter_map(|source| match source {
+                Source::Dir {
+                    path,
+                    children,
+                    payload: _,
+                } => Some(DigestedSource::DigestedDir {
                     root: path.clone(),
+                    level: path.to_str().to_owned().unwrap().split('/').count() - 1,
+                    children: children.clone(),
                 }),
                 _ => None,
             })
-            .collect::<Vec<BlobProcessedDir<String>>>();
+            .collect::<Vec<_>>();
 
-        data.sort_by(|a, b| a.level.cmp(&b.level));
+        data.sort_by_key(|d| d.get_level());
         data.reverse();
 
-        let total_files = data.iter().fold(0, |acc, v| acc + v.children.len());
+        let total_files = data.iter().fold(0, |acc, v| {
+            acc + match v {
+                DigestedSource::DigestedDir {
+                    root: _,
+                    level: _,
+                    children,
+                } => children.len(),
+                _ => 0,
+            }
+        });
         let total_dirs = data.len();
-        let max_level = data.iter().fold(0, |acc, v| acc.max(v.level));
+        let max_level = data.iter().fold(0, |acc, v| acc.max(v.get_level()));
 
         println!("Total files: {}", total_files);
         println!("Total dirs: {}", total_dirs);
@@ -110,12 +151,10 @@ impl Growth {
     }
 
     pub async fn process_file(
-        child: PathBuf,
+        child: &PathBuf,
         arc_engine_clone: Arc<LLMEngine>,
     ) -> Result<ProcessFileResult> {
-        let file_content = read_to_string(child.clone())
-            .await
-            .unwrap_or("".to_string());
+        let file_content = read_to_string(child).await.unwrap_or("".to_string());
 
         let max_char = 10_000;
 
@@ -156,11 +195,11 @@ impl Growth {
             return Err(anyhow!("{}", err));
         }
 
-        let hash = Self::calculate_file_hash(child.clone()).await;
+        let hash = Self::calculate_file_hash(child.to_path_buf()).await;
 
         Ok(ProcessFileResult {
             llm_response: interpretation.unwrap(),
-            file_path: child.clone(),
+            file_path: child.to_path_buf(),
             hash,
         })
     }

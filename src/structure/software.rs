@@ -4,22 +4,29 @@ use git2::Repository;
 use tokio::fs;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum SourceAtom<T = ()>
+pub enum Source<Payload = ()>
 where
-    T: Clone + Sync,
+    Payload: Clone + Sync,
 {
-    File(PathBuf, T),
-    Dir(PathBuf, Vec<SourceAtom<T>>, T),
+    File {
+        path: PathBuf,
+        payload: Payload,
+    },
+    Dir {
+        path: PathBuf,
+        payload: Payload,
+        children: Vec<Source<Payload>>,
+    },
 }
 
 pub struct Project {
     pub root_path: PathBuf,
-    repository: Repository,
+    repository: Option<Repository>,
 }
 
 impl Project {
     pub fn new(root_path: PathBuf) -> Self {
-        let repository = Repository::discover(root_path.clone()).unwrap();
+        let repository = Repository::discover(root_path.clone()).ok();
 
         Project {
             root_path,
@@ -27,20 +34,29 @@ impl Project {
         }
     }
 
-    pub async fn calculate_source<T, B>(&mut self, mut builder: B) -> Vec<SourceAtom<T>>
+    pub async fn calculate_source<Payload, FnBuilder>(
+        &mut self,
+        mut builder: FnBuilder,
+    ) -> Vec<Source<Payload>>
     where
-        T: Clone + Sync,
-        B: FnMut(&SourceAtom) -> T,
+        Payload: Clone + Sync,
+        FnBuilder: FnMut(&Source) -> Payload,
     {
         let mut source = vec![];
         let mut to_visit = vec![self.root_path.clone()];
 
+        let with_git_repository = self.repository.is_some();
+
         while let Some(path) = to_visit.pop() {
             let canon_path = path.clone().canonicalize();
-            if self
-                .repository
-                .status_should_ignore(&canon_path.unwrap())
-                .unwrap()
+
+            if with_git_repository
+                && self
+                    .repository
+                    .as_ref()
+                    .unwrap()
+                    .status_should_ignore(&canon_path.unwrap())
+                    .unwrap()
             {
                 continue;
             }
@@ -57,37 +73,48 @@ impl Project {
                     }
                 }
 
-                let files: Vec<SourceAtom> = files
+                let files: Vec<Source<()>> = files
                     .into_iter()
-                    .map(|file| {
-                        // let f = SourceAtom::File(file.path());
-                        SourceAtom::File(file.path(), ())
+                    .map(|file| Source::File {
+                        path: file.path(),
+                        payload: (),
                     })
                     .collect();
 
-                let d = SourceAtom::Dir(path.clone(), files.clone(), ());
-                source.push(SourceAtom::Dir(
-                    path.clone(),
-                    files
+                let d = Source::Dir {
+                    path: path.clone(),
+                    payload: (),
+                    children: files.clone(),
+                };
+
+                let new_source = Source::Dir::<Payload> {
+                    path: path.clone(),
+                    payload: builder(&d),
+                    children: files
                         .iter()
                         .map(|atom| match atom {
-                            SourceAtom::File(path, ()) => SourceAtom::File(
-                                path.clone(),
-                                builder(&SourceAtom::File(path.clone(), ())),
-                            ),
-                            SourceAtom::Dir(_, _, _) => SourceAtom::Dir(
-                                path.clone(),
-                                vec![],
-                                builder(&SourceAtom::Dir(path.clone(), vec![], ())),
-                            ),
+                            Source::File { path, payload: _ } => Source::File::<Payload> {
+                                path: path.clone(),
+                                payload: builder(&Source::File {
+                                    path: path.clone(),
+                                    payload: (),
+                                }),
+                            },
+                            _ => unreachable!(),
                         })
-                        .collect(),
-                    builder(&d),
-                ));
+                        .collect::<Vec<Source<Payload>>>(),
+                };
+
+                source.push(new_source);
                 // source.push(SourceAtom::Dir(path, files));
             } else {
-                let f = SourceAtom::File(path.clone(), ());
-                source.push(SourceAtom::File(path.clone(), builder(&f)));
+                source.push(Source::File {
+                    path: path.clone(),
+                    payload: builder(&Source::File {
+                        path: path.clone(),
+                        payload: (),
+                    }),
+                });
                 // source.push(SourceAtom::File(path));
             }
         }

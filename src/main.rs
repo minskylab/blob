@@ -15,11 +15,11 @@ use llm::engine::LLMEngine;
 
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use rayon::slice::ParallelSlice;
-use structure::growth::{Growth, ProcessFileResult};
+use structure::growth::{DigestedSource, Growth, ProcessFileResult};
 use tokio::spawn;
 use tokio::time::sleep;
 
-use crate::structure::software::{Project, SourceAtom};
+use crate::structure::software::{Project, Source};
 use crossbeam_utils::sync::WaitGroup;
 
 mod blob;
@@ -148,10 +148,27 @@ async fn main() {
         Commands::Analyze { file: _ } => {
             let software_project = Project::new(PathBuf::from(project_root_path));
 
-            let data = Growth::traversal_modules(software_project).await;
+            let sorted_dirs = Growth::traversal_modules(software_project).await;
 
-            // for d in data {
-            //     println!("{:?}", d);
+            // for d in sorted_dirs {
+            //     match d {
+            //         DigestedSource::DigestedDir {
+            //             root,
+            //             level,
+            //             children,
+            //         } => {
+            //             println!("{} {:?}", level, root);
+            //             for child in children {
+            //                 match child {
+            //                     Source::File { path, payload } => {
+            //                         println!("\t{:?} {:?}", path, payload);
+            //                     }
+            //                     _ => {}
+            //                 }
+            //             }
+            //         }
+            //         _ => {}
+            //     }
             // }
 
             // let arc_engine = Arc::new(engine);
@@ -240,12 +257,12 @@ async fn main() {
     }
 }
 
-async fn process_file<T>(
-    child: SourceAtom<T>,
+async fn process_file<Payload>(
+    child: Source<Payload>,
     arc_engine: Arc<LLMEngine>,
 ) -> Result<ProcessFileResult>
 where
-    T: Clone + Sync + Display,
+    Payload: Clone + Sync + Display,
 {
     // match child {
     //     SourceAtom::File(child, kind) => {
