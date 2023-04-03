@@ -19,6 +19,32 @@ where
     },
 }
 
+impl<Payload> Source<Payload>
+where
+    Payload: Clone + Sync,
+{
+    pub fn path(&self) -> &PathBuf {
+        match self {
+            Source::File { path, payload: _ } => path,
+            Source::Dir {
+                path,
+                payload: _,
+                children: _,
+            } => path,
+        }
+    }
+
+    pub fn payload(&self) -> &Payload {
+        match self {
+            Source::File { path: _, payload } => payload,
+            Source::Dir {
+                path: _,
+                payload,
+                children: _,
+            } => payload,
+        }
+    }
+}
 pub struct Project {
     pub root_path: PathBuf,
     repository: Option<Repository>,

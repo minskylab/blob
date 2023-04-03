@@ -13,7 +13,7 @@ use cli::tool::{BlobTool, Commands};
 use dotenv::dotenv;
 use llm::engine::LLMEngine;
 
-use rayon::prelude::{IntoParallelIterator, ParallelIterator};
+use rayon::prelude::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon::slice::ParallelSlice;
 use structure::growth::{DigestedSource, Growth, ProcessFileResult};
 use tokio::spawn;
@@ -150,6 +150,38 @@ async fn main() {
 
             let sorted_dirs = Growth::traversal_modules(software_project).await;
 
+            let all_files = Growth::extract_all_files_from_digested_source(sorted_dirs).await;
+
+            let arc_engine = Arc::new(engine);
+
+            all_files
+                .par_iter()
+                .filter(|f| {
+                    if let Some(mime_type) = (*f).payload().mime_type() {
+                        mime_type.starts_with("text/")
+                    } else {
+                        false
+                    }
+                })
+                .collect::<Vec<_>>()
+                .chunks(4)
+                .for_each(|sources| {
+                    let processed_sources = sources
+                        .into_par_iter()
+                        .map(|source| async {
+                            println!("Source {:?}", source.path());
+                            let a = process_file((*source).clone(), Arc::clone(&arc_engine)).await;
+                            "".to_string()
+                        })
+                        .collect::<Vec<_>>();
+
+                    // println!("Processing {:?}\n", sources);
+                });
+
+            // for f in all_files {
+            //     println!("{:?}", f);
+            // }
+
             // for d in sorted_dirs {
             //     match d {
             //         DigestedSource::DigestedDir {
@@ -258,11 +290,11 @@ async fn main() {
 }
 
 async fn process_file<Payload>(
-    child: Source<Payload>,
+    source: Source<Payload>,
     arc_engine: Arc<LLMEngine>,
 ) -> Result<ProcessFileResult>
 where
-    Payload: Clone + Sync + Display,
+    Payload: Clone + Sync,
 {
     // match child {
     //     SourceAtom::File(child, kind) => {

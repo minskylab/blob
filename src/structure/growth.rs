@@ -1,4 +1,4 @@
-use std::{collections::HashMap, default, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use anyhow::{anyhow, Result};
 use sha2::{Digest, Sha256};
@@ -67,11 +67,18 @@ pub enum DigestedSource {
 }
 
 impl DigestedSource {
-    fn get_level(&self) -> usize {
+    fn level(&self) -> usize {
         match self {
             DigestedSource::DigestedFile { level, .. } => *level,
             DigestedSource::DigestedDir { level, .. } => *level,
             DigestedSource::Undefined => 0,
+        }
+    }
+
+    pub fn mime_type(&self) -> Option<String> {
+        match self {
+            DigestedSource::DigestedFile { mime_type, .. } => Some(mime_type.to_string()),
+            _ => None,
         }
     }
 }
@@ -127,7 +134,7 @@ impl Growth {
             })
             .collect::<Vec<_>>();
 
-        data.sort_by_key(|d| d.get_level());
+        data.sort_by_key(|d| d.level());
         data.reverse();
 
         let total_files = data.iter().fold(0, |acc, v| {
@@ -141,13 +148,34 @@ impl Growth {
             }
         });
         let total_dirs = data.len();
-        let max_level = data.iter().fold(0, |acc, v| acc.max(v.get_level()));
+        let max_level = data.iter().fold(0, |acc, v| acc.max(v.level()));
 
         println!("Total files: {}", total_files);
         println!("Total dirs: {}", total_dirs);
         println!("Max level: {}", max_level);
 
         data
+    }
+
+    pub async fn extract_all_files_from_digested_source(
+        dirs: Vec<DigestedSource>,
+    ) -> Vec<Source<DigestedSource>> {
+        let mut files = vec![];
+
+        for dir in dirs {
+            if let DigestedSource::DigestedDir {
+                root: _,
+                level: _,
+                children,
+            } = dir
+            {
+                for child in children {
+                    files.push(child);
+                }
+            }
+        }
+
+        files
     }
 
     pub async fn process_file(
