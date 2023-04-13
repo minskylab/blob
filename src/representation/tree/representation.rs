@@ -9,18 +9,9 @@ pub struct TreeRepresentation {
     dir_has_next: Vec<bool>,
     num_dirs: usize,
     num_files: usize,
-    // summary_format: SummaryFormat,
 }
 
 impl TreeRepresentation {
-    pub fn new() -> Self {
-        TreeRepresentation {
-            dir_has_next: vec![true],
-            num_dirs: 0,
-            num_files: 0,
-        }
-    }
-
     fn construct_entry<D: Display>(&mut self, name: &D) -> String {
         let vertical_line = "│   ";
         let branched_line = "├── ";
@@ -48,6 +39,16 @@ impl TreeRepresentation {
         entry.push_str(&format!("{}\n", name));
 
         entry
+    }
+}
+
+impl Default for TreeRepresentation {
+    fn default() -> Self {
+        TreeRepresentation {
+            dir_has_next: vec![true],
+            num_dirs: 0,
+            num_files: 0,
+        }
     }
 }
 

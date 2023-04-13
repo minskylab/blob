@@ -1,33 +1,23 @@
-use std::fmt::Display;
-
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
 
-use anyhow::{anyhow, Result};
-use blob::context::BlobContextProcessor;
-use blob::mutation::{ProjectMutationDraft, SourceFileMutation, SourceFileMutationDraft};
+use anyhow::Result;
+use blob::blob::context::{BlobContextProcessor, BlobDefinitionKind};
+use blob::blob::mutation::{ProjectMutationDraft, SourceFileMutation, SourceFileMutationDraft};
+use blob::cli::tool::{BlobTool, Commands};
+use blob::llm::engine::LLMEngine;
 use clap::Parser;
-use cli::tool::{BlobTool, Commands};
 use dotenv::dotenv;
-use llm::engine::LLMEngine;
 
 use rayon::prelude::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
-use rayon::slice::ParallelSlice;
-use structure::growth::{DigestedSource, Growth, ProcessFileResult};
-use tokio::spawn;
+
+use blob::structure::growth::{Growth, ProcessFileResult};
+
 use tokio::time::sleep;
 
-use crate::structure::software::{Project, Source};
-use crossbeam_utils::sync::WaitGroup;
-
-mod blob;
-mod cli;
-mod codex;
-mod llm;
-mod representation;
-pub mod structure;
+use blob::structure::software::{Project, Source};
 
 fn ask_for_confirmation() -> bool {
     println!("Do you want to apply this mutation? (y/N):");
@@ -106,8 +96,8 @@ async fn main() {
                 }
             }
             None => {
-                let definitions = context_processor
-                    .retrieve_definitions(blob::context::BlobDefinitionKind::Project);
+                let definitions =
+                    context_processor.retrieve_definitions(BlobDefinitionKind::Project);
 
                 let context_lines = definitions
                     .iter()

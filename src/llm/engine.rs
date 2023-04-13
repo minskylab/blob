@@ -33,8 +33,7 @@ impl LLMEngine {
         let access_token = std::env::var("OPENAI_API_KEY").unwrap();
 
         LLMEngine {
-            llm_representation: TreeRepresentation::new(),
-            // walker: ,
+            llm_representation: TreeRepresentation::default(),
             codex_processor: CodexProcessor::new(access_token),
         }
     }
