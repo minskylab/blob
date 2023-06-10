@@ -18,7 +18,7 @@ Please note that Blob is currently under development and is not yet suitable for
 
 ## Main Idea
 
-The main idea behind Blob is to create a **natural language reversible representation of the file structure** of a software project. This way, we can ask GPT-3 to generate a new file structure based on natural language instructions. While we have tried different representations, the most simple and effective so far is a tree-like representation of the file structure.
+The main idea behind Blob is to create a **natural language reversible representation of the file struct and content** of a software project. This way, we can ask GPT-3 to generate a new file structure based on natural language instructions. While we have tried different representations, the most simple and effective so far is a tree-like representation of the file structure.
 
 For example, imagine you have a project in a folder called `playground` with the following structure:
 
