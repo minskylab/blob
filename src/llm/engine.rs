@@ -87,6 +87,10 @@ impl LLMEngine {
         ProjectMutation::new_from_parent(snapshot.clone(), predicted_commands, full_script)
     }
 
+    fn foo(matrix: Vec<Vec<u16>>) {
+        
+    }
+
     pub async fn transform_specific_file(
         &mut self,
         mutation_draft: Box<SourceFileMutationDraft>,

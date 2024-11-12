@@ -1,8 +1,11 @@
 use crate::structure::{growth::DigestedSource, software::Source};
 
 pub enum Task {
-    ProcessFile(DigestedSource),
-    ProcessDir(DigestedSource),
+    ProcessDigestedSource(DigestedSource),
 }
 
-async fn process_task(task: Task) {}
+async fn _process_task(task: Task) {
+    // match task {
+    //     Task::ProcessDigestedSource(digested) => digested.into(),
+    // }
+}

@@ -147,6 +147,7 @@ impl Growth {
                 _ => 0,
             }
         });
+
         let total_dirs = data.len();
         let max_level = data.iter().fold(0, |acc, v| acc.max(v.level()));
 
@@ -214,7 +215,7 @@ impl Growth {
             ),
             Err(e) => {
                 println!("Error: {}", e);
-                // return e;
+
                 (None, Some(e.to_string()))
             }
         };
